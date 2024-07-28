@@ -1,0 +1,122 @@
+/* Global Styles */
+body {
+  background-color: #f7fafc;
+  color: #2d3748;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Container Styles */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Heading Styles */
+h1, h2, h3, h4, h5, h6 {
+  color: #2c5282;
+  margin-bottom: 1rem;
+}
+
+/* Button Styles */
+.chakra-button {
+  transition: all 0.3s ease;
+}
+
+.chakra-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Form Control Styles */
+.chakra-form-control {
+  margin-bottom: 1.5rem;
+}
+
+.chakra-form__label {
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.chakra-input, .chakra-select {
+  border-color: #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.chakra-input:focus, .chakra-select:focus {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 1px #4299e1;
+}
+
+/* Tab Styles */
+.chakra-tabs__tab {
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.chakra-tabs__tab[aria-selected="true"] {
+  color: #4299e1;
+  border-color: #4299e1;
+}
+
+/* Card Styles */
+.chakra-card {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.chakra-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Custom Classes */
+.wallet-info {
+  background-color: #ebf8ff;
+  border: 1px solid #bee3f8;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #2c5282;
+}
+
+.borrow-history-item {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1rem 0;
+}
+
+.borrow-history-item:last-child {
+  border-bottom: none;
+}
+
+.borrow-history-date {
+  font-size: 0.875rem;
+  color: #718096;
+}
+
+.borrow-history-details {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.chain-config-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.chain-config-item label {
+  margin-right: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .chakra-tabs__tab {
+    font-size: 0.875rem;
+  }
+}
