@@ -1,6 +1,6 @@
-import type { FormEvent } from 'react'
-import { type Hex, formatEther, parseAbi, parseEther } from 'viem'
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import type { FormEvent } from "react";
+import { type Hex, formatEther, parseAbi, parseEther } from "viem";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
   type BaseError,
   useAccount,
@@ -21,11 +21,12 @@ import {
   useSwitchChain,
   useWaitForTransactionReceipt,
   useWriteContract,
-} from 'wagmi'
-import { optimism } from 'wagmi/chains'
+} from "wagmi";
+import { optimism } from "wagmi/chains";
+import { ThemeProvider } from "@/components/theme-provider";
 
-import CrossChainLendingApp from './CrossChainLendingApp'
-import { wagmiContractConfig } from './contracts'
+import CrossChainLendingApp from "./CrossChainLendingApp";
+import { wagmiContractConfig } from "./contracts";
 
 function App() {
   useAccountEffect({
@@ -35,11 +36,12 @@ function App() {
     onDisconnect() {
       // console.log('onDisconnect')
     },
-  })
+  });
 
   return (
     <>
-      {/* <Account />
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        {/* <Account />
       <Connect />
       <ConnectButton />
       <SwitchAccount />
@@ -51,19 +53,20 @@ function App() {
       <ConnectorClient />
       <SendTransaction />
       <ReadContract />
-      <ReadContracts />
-      <WriteContract /> */}
-      <CrossChainLendingApp />
+      <ReadContracts />*/}
+        {/* <WriteContract />  */}
+        <CrossChainLendingApp />
+      </ThemeProvider>
     </>
-  )
+  );
 }
 
 function Account() {
-  const account = useAccount()
-  const { disconnect } = useDisconnect()
+  const account = useAccount();
+  const { disconnect } = useDisconnect();
   const { data: ensName } = useEnsName({
     address: account.address,
-  })
+  });
 
   return (
     <div>
@@ -77,18 +80,18 @@ function Account() {
         status: {account.status}
       </div>
 
-      {account.status !== 'disconnected' && (
+      {account.status !== "disconnected" && (
         <button type="button" onClick={() => disconnect()}>
           Disconnect
         </button>
       )}
     </div>
-  )
+  );
 }
 
 function Connect() {
-  const chainId = useChainId()
-  const { connectors, connect, status, error } = useConnect()
+  const chainId = useChainId();
+  const { connectors, connect, status, error } = useConnect();
 
   return (
     <div>
@@ -105,12 +108,12 @@ function Connect() {
       <div>{status}</div>
       <div>{error?.message}</div>
     </div>
-  )
+  );
 }
 
 function SwitchAccount() {
-  const account = useAccount()
-  const { connectors, switchAccount } = useSwitchAccount()
+  const account = useAccount();
+  const { connectors, switchAccount } = useSwitchAccount();
 
   return (
     <div>
@@ -127,12 +130,12 @@ function SwitchAccount() {
         </button>
       ))}
     </div>
-  )
+  );
 }
 
 function SwitchChain() {
-  const chainId = useChainId()
-  const { chains, switchChain, error } = useSwitchChain()
+  const chainId = useChainId();
+  const { chains, switchChain, error } = useSwitchChain();
 
   return (
     <div>
@@ -151,11 +154,11 @@ function SwitchChain() {
 
       {error?.message}
     </div>
-  )
+  );
 }
 
 function SignMessage() {
-  const { data, signMessage } = useSignMessage()
+  const { data, signMessage } = useSignMessage();
 
   return (
     <div>
@@ -163,9 +166,9 @@ function SignMessage() {
 
       <form
         onSubmit={(event) => {
-          event.preventDefault()
-          const formData = new FormData(event.target as HTMLFormElement)
-          signMessage({ message: formData.get('message') as string })
+          event.preventDefault();
+          const formData = new FormData(event.target as HTMLFormElement);
+          signMessage({ message: formData.get("message") as string });
         }}
       >
         <input name="message" />
@@ -174,11 +177,11 @@ function SignMessage() {
 
       {data}
     </div>
-  )
+  );
 }
 
 function Connections() {
-  const connections = useConnections()
+  const connections = useConnections();
 
   return (
     <div>
@@ -192,48 +195,48 @@ function Connections() {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function Balance() {
-  const { address } = useAccount()
+  const { address } = useAccount();
 
-  const { data: default_ } = useBalance({ address })
-  const { data: account_ } = useBalance({ address })
+  const { data: default_ } = useBalance({ address });
+  const { data: account_ } = useBalance({ address });
   const { data: optimism_ } = useBalance({
     address,
     chainId: optimism.id,
-  })
+  });
 
   return (
     <div>
       <h2>Balance</h2>
 
       <div>
-        Balance (Default Chain):{' '}
+        Balance (Default Chain):{" "}
         {!!default_?.value && formatEther(default_.value)}
       </div>
       <div>
-        Balance (Account Chain):{' '}
+        Balance (Account Chain):{" "}
         {!!account_?.value && formatEther(account_.value)}
       </div>
       <div>
-        Balance (Optimism Chain):{' '}
+        Balance (Optimism Chain):{" "}
         {!!optimism_?.value && formatEther(optimism_.value)}
       </div>
     </div>
-  )
+  );
 }
 
 function BlockNumber() {
-  const { data: default_ } = useBlockNumber({ watch: true })
+  const { data: default_ } = useBlockNumber({ watch: true });
   const { data: account_ } = useBlockNumber({
     watch: true,
-  })
+  });
   const { data: optimism_ } = useBlockNumber({
     chainId: optimism.id,
     watch: true,
-  })
+  });
 
   return (
     <div>
@@ -243,35 +246,40 @@ function BlockNumber() {
       <div>Block Number (Account Chain): {account_?.toString()}</div>
       <div>Block Number (Optimism): {optimism_?.toString()}</div>
     </div>
-  )
+  );
 }
 
 function ConnectorClient() {
-  const { data, error } = useConnectorClient()
+  const { data, error } = useConnectorClient();
   return (
     <div>
       <h2>Connector Client</h2>
       client {data?.account?.address} {data?.chain?.id}
       {error?.message}
     </div>
-  )
+  );
 }
 
 function SendTransaction() {
-  const { data: hash, error, isPending, sendTransaction } = useSendTransaction()
+  const {
+    data: hash,
+    error,
+    isPending,
+    sendTransaction,
+  } = useSendTransaction();
 
   async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const formData = new FormData(e.target as HTMLFormElement)
-    const to = formData.get('address') as Hex
-    const value = formData.get('value') as string
-    sendTransaction({ to, value: parseEther(value) })
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const to = formData.get("address") as Hex;
+    const value = formData.get("value") as string;
+    sendTransaction({ to, value: parseEther(value) });
   }
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({
       hash,
-    })
+    });
 
   return (
     <div>
@@ -286,32 +294,32 @@ function SendTransaction() {
           required
         />
         <button disabled={isPending} type="submit">
-          {isPending ? 'Confirming...' : 'Send'}
+          {isPending ? "Confirming..." : "Send"}
         </button>
       </form>
       {hash && <div>Transaction Hash: {hash}</div>}
-      {isConfirming && 'Waiting for confirmation...'}
-      {isConfirmed && 'Transaction confirmed.'}
+      {isConfirming && "Waiting for confirmation..."}
+      {isConfirmed && "Transaction confirmed."}
       {error && (
         <div>Error: {(error as BaseError).shortMessage || error.message}</div>
       )}
     </div>
-  )
+  );
 }
 
 function ReadContract() {
   const { data: balance } = useReadContract({
     ...wagmiContractConfig,
-    functionName: 'balanceOf',
-    args: ['0x03A71968491d55603FFe1b11A9e23eF013f75bCF'],
-  })
+    functionName: "balanceOf",
+    args: ["0x03A71968491d55603FFe1b11A9e23eF013f75bCF"],
+  });
 
   return (
     <div>
       <h2>Read Contract</h2>
       <div>Balance: {balance?.toString()}</div>
     </div>
-  )
+  );
 }
 
 function ReadContracts() {
@@ -320,21 +328,21 @@ function ReadContracts() {
     contracts: [
       {
         ...wagmiContractConfig,
-        functionName: 'balanceOf',
-        args: ['0x03A71968491d55603FFe1b11A9e23eF013f75bCF'],
+        functionName: "balanceOf",
+        args: ["0x03A71968491d55603FFe1b11A9e23eF013f75bCF"],
       },
       {
         ...wagmiContractConfig,
-        functionName: 'ownerOf',
+        functionName: "ownerOf",
         args: [69n],
       },
       {
         ...wagmiContractConfig,
-        functionName: 'totalSupply',
+        functionName: "totalSupply",
       },
     ],
-  })
-  const [balance, ownerOf, totalSupply] = data || []
+  });
+  const [balance, ownerOf, totalSupply] = data || [];
 
   return (
     <div>
@@ -343,28 +351,28 @@ function ReadContracts() {
       <div>Owner of Token 69: {ownerOf?.toString()}</div>
       <div>Total Supply: {totalSupply?.toString()}</div>
     </div>
-  )
+  );
 }
 
 function WriteContract() {
-  const { data: hash, error, isPending, writeContract } = useWriteContract()
+  const { data: hash, error, isPending, writeContract } = useWriteContract();
 
   async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const formData = new FormData(e.target as HTMLFormElement)
-    const tokenId = formData.get('tokenId') as string
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const tokenId = formData.get("tokenId") as string;
     writeContract({
-      address: '0xFBA3912Ca04dd458c843e2EE08967fC04f3579c2',
-      abi: parseAbi(['function mint(uint256 tokenId)']),
-      functionName: 'mint',
+      address: "0xFBA3912Ca04dd458c843e2EE08967fC04f3579c2",
+      abi: parseAbi(["function mint(uint256 tokenId)"]),
+      functionName: "mint",
       args: [BigInt(tokenId)],
-    })
+    });
   }
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({
       hash,
-    })
+    });
 
   return (
     <div>
@@ -372,17 +380,17 @@ function WriteContract() {
       <form onSubmit={submit}>
         <input name="tokenId" placeholder="Token ID" required />
         <button disabled={isPending} type="submit">
-          {isPending ? 'Confirming...' : 'Mint'}
+          {isPending ? "Confirming..." : "Mint"}
         </button>
       </form>
       {hash && <div>Transaction Hash: {hash}</div>}
-      {isConfirming && 'Waiting for confirmation...'}
-      {isConfirmed && 'Transaction confirmed.'}
+      {isConfirming && "Waiting for confirmation..."}
+      {isConfirmed && "Transaction confirmed."}
       {error && (
         <div>Error: {(error as BaseError).shortMessage || error.message}</div>
       )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

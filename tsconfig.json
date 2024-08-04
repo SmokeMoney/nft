@@ -22,9 +22,11 @@
       "@wagmi/core": ["../../packages/core/src/exports"],
       "@wagmi/core/*": ["../../packages/core/src/exports/*"],
       "wagmi": ["../../packages/react/src/exports"],
-      "wagmi/*": ["../../packages/react/src/exports/*"]
-    }
+      "wagmi/*": ["../../packages/react/src/exports/*"],
+      "@/*": ["./src/*"]
+    },
+    "baseUrl": ".",
   },
   "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "references": [{ "path": "./tsconfig.node.json" }],
 }

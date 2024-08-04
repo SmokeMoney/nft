@@ -1,114 +1,38 @@
-/* Global Styles */
-body {
-  background-color: #f7fafc;
-  color: #2d3748;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+.app-container {
+  padding: 1%;
 }
 
-/* Container Styles */
-.container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
+.SelectedBorRow {
+  background-color: #505050;
+  color: white;
 }
-
-/* Heading Styles */
-h1, h2, h3, h4, h5, h6 {
-  color: #2c5282;
-  margin-bottom: 1rem;
+/* .PopoverContent {
+  border-radius: 4px;
+  padding: 20px;
+  width: 260px;
+  background-color: rgb(0, 0, 0);
+  box-shadow: hsl(206 22% 7% / 35%) 0px 10px 38px -10px, hsl(206 22% 7% / 20%) 0px 10px 20px -15px;
+  animation-duration: 400ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
 }
-
-/* Button Styles */
-.chakra-button {
-  transition: all 0.3s ease;
+.PopoverContent:focus {
+  box-shadow: hsl(206 22% 7% / 35%) 0px 10px 38px -10px, hsl(206 22% 7% / 20%) 0px 10px 20px -15px,
+    0 0 0 2px var(--violet-7);
 }
-
-.chakra-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+.PopoverContent[data-state='open'][data-side='top'] {
+  animation-name: slideDownAndFade;
 }
-
-/* Form Control Styles */
-.chakra-form-control {
-  margin-bottom: 1.5rem;
+.PopoverContent[data-state='open'][data-side='right'] {
+  animation-name: slideLeftAndFade;
 }
-
-.chakra-form__label {
-  font-weight: 600;
-  color: #4a5568;
+.PopoverContent[data-state='open'][data-side='bottom'] {
+  animation-name: slideUpAndFade;
 }
-
-.chakra-input, .chakra-select {
-  border-color: #e2e8f0;
-  transition: all 0.3s ease;
-}
-
-.chakra-input:focus, .chakra-select:focus {
-  border-color: #4299e1;
-  box-shadow: 0 0 0 1px #4299e1;
-}
-
-/* Tab Styles */
-.chakra-tabs__tab {
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.chakra-tabs__tab[aria-selected="true"] {
-  color: #4299e1;
-  border-color: #4299e1;
-}
-
-/* Card Styles */
-.chakra-card {
-  transition: all 0.3s ease;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.chakra-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-/* Custom Classes */
-.wallet-info {
-  background-color: #ebf8ff;
-  border: 1px solid #bee3f8;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  color: #2c5282;
-}
-
-.borrow-history-item {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 1rem 0;
-}
-
-.borrow-history-item:last-child {
-  border-bottom: none;
-}
-
-.borrow-history-date {
-  font-size: 0.875rem;
-  color: #718096;
-}
-
-.borrow-history-details {
-  font-weight: 600;
-  color: #2d3748;
-}
-
-.chain-config-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.chain-config-item label {
-  margin-right: 1rem;
-}
+.PopoverContent[data-state='open'][data-side='left'] {
+  animation-name: slideRightAndFade;
+} */
 
 /* Responsive adjustments */
 @media (max-width: 480px) {
@@ -120,3 +44,4 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.875rem;
   }
 }
+
