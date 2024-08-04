@@ -79,7 +79,7 @@ export function getLZId(chainId: number): number {
     return chain?.id
   }
   else {
-    throw Error('LZ ID not found');
+    return 0
   }
 }
 
@@ -98,30 +98,30 @@ export function getChainLendingAddress(chainId: number): `0x${string}` {
   }
 }
 
-export function getDepositAddress(chainId: number): string {
+export function getDepositAddress(chainId: number): `0x${string}` {
   const chain = chains.find((c) => c.id === chainId);
   if (chain?.depositAddress) {
-    return chain?.depositAddress
+    return chain?.depositAddress as `0x${string}`
   }
   else {
     throw Error('deposit address not found');
   }
 }
 
-export function getWETHAddress(chainId: number): string {
+export function getWETHAddress(chainId: number): `0x${string}` {
   const chain = chains.find((c) => c.id === chainId);
   if (chain?.wethAddress) {
-    return chain?.wethAddress
+    return chain?.wethAddress as `0x${string}`
   }
   else {
     throw Error("WETH Address not found");
   }
 }
 
-export function getWstETHAddress(chainId: number): string {
+export function getWstETHAddress(chainId: number): `0x${string}` {
   const chain = chains.find((c) => c.id === chainId);
   if (chain?.wstethAddress) {
-    return chain?.wstethAddress
+    return chain?.wstethAddress as `0x${string}`
   }
   else {
     throw Error('wstETH Address not found');

@@ -12,6 +12,7 @@ function abiItemToString(item: any): string {
     case 'constructor':
       return constructorToString(item);
     default:
+      console.warn(`Unhandled ABI item type: ${item.type}`);
       return '';
   }
 }
@@ -39,16 +40,25 @@ function constructorToString(item: any): string {
 
 function parameterToString(param: any): string {
   let typeString = param.type;
-  if (param.components) {
-    const componentsString = param.components.map(parameterToString).join(', ');
-    typeString = `${param.type}(${componentsString})`;
+  if (typeString === 'tuple' && param.components) {
+    const componentsString = param.components.map((comp: any) => 
+      `${comp.type} ${comp.name}`
+    ).join(', ');
+    typeString = `tuple(${componentsString})`;
   }
   return `${typeString}${param.name ? ' ' + param.name : ''}`;
 }
 
 function parseDumbAbis(param: any): any {
-  const abiStrings = param.map(abiItemToString).filter(Boolean);
-  const parsedAbi = parseAbi(abiStrings);
-  return parsedAbi
+  const abiStrings = param.map((item: any) => {
+    const result = abiItemToString(item);
+    return result;
+  }).filter(Boolean);
+  try {
+    const parsedAbi = parseAbi(abiStrings);
+    return parsedAbi;
+  } catch (error) {
+    throw error;
+  }
 }
-export default parseDumbAbis;
+export default parseDumbAbis; 

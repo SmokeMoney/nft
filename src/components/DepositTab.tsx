@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { formatEther, parseEther } from "viem";
+import { Address, formatEther, parseEther } from "viem";
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useChainId,
   useSwitchChain,
+  useReadContract,
+  useAccount,
 } from "wagmi";
 import {
   Card,
@@ -30,23 +32,25 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   getChainLendingAddress,
   getChainName,
+  getDepositAddress,
   getLegacyId,
   getLZId,
   getWstETHAddress,
 } from "../utils/chainMapping";
 import { NFT } from "@/CrossChainLendingApp";
 import depositRawAbi from "../abi/AdminDepositContract.abi.json";
-import parseDumbAbis from "@/abi/parsedCoreNFTAbi";
+import erc20Abi from "../abi/ERC20.abi.json"; // Make sure you have this ABI
 
 const DepositTabComp: React.FC<{
   selectedNFT: NFT;
 }> = ({ selectedNFT }) => {
   const [depositAmount, setDepositAmount] = useState("");
-  const [selectedToken, setSelectedToken] = useState("weth");
+  const [selectedToken, setSelectedToken] = useState("wstETH");
   const [selectedChain, setSelectedChain] = useState("");
+  const [isApproved, setIsApproved] = useState(false);
   const chainId = useChainId();
+  const { address } = useAccount();
   const { switchChain } = useSwitchChain();
-  const depositAbi = parseDumbAbis(depositRawAbi);
 
   useEffect(() => {
     setSelectedChain(getLZId(chainId).toString());
@@ -62,6 +66,41 @@ const DepositTabComp: React.FC<{
     useWaitForTransactionReceipt({
       hash,
     });
+  // Check if the contract is approved to spend wstETH
+  const { data: allowance } = useReadContract({
+    address: getWstETHAddress(getLZId(chainId)),
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: [address as Address, getDepositAddress(getLZId(chainId))], // owner, spender
+}) as { data: bigint | undefined, isError: boolean };
+
+
+  useEffect(() => {
+    if (allowance !== undefined && depositAmount) {
+      console.log(allowance);
+      try {
+        const parsedAmount = parseEther(depositAmount);
+        setIsApproved(allowance >= parsedAmount);
+      } catch (error) {
+        console.error("Error parsing deposit amount:", error);
+        setIsApproved(false);
+      }
+    } else {
+      setIsApproved(false);
+    }
+  }, [allowance, depositAmount]);
+
+  const handleApprove = async () => {
+    if (!depositAmount) return;
+
+    writeContract({
+      address: getWstETHAddress(getLZId(chainId)),
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [ getDepositAddress(getLZId(chainId)), parseEther(depositAmount)], // spender, amount
+    });
+  };
+
 
   const handleDeposit = async (e: any) => {
     e.preventDefault();
@@ -71,8 +110,8 @@ const DepositTabComp: React.FC<{
 
     if (selectedToken === "ETH") {
       writeContract({
-        address: getChainLendingAddress(getLZId(chainId)),
-        abi: depositAbi,
+        address: getDepositAddress(getLZId(chainId)),
+        abi: depositRawAbi,
         functionName: "depositETH",
         args: [BigInt(selectedNFT.id), amount],
         value: amount,
@@ -81,8 +120,8 @@ const DepositTabComp: React.FC<{
       // For wstETH, you'd need to approve the contract to spend wstETH first
       // Then call the deposit function
       writeContract({
-        address: getChainLendingAddress(getLZId(chainId)),
-        abi: depositAbi,
+        address: getDepositAddress(getLZId(chainId)),
+        abi: depositRawAbi,
         functionName: "deposit",
         args: [
           getWstETHAddress(Number(selectedChain)),
@@ -124,19 +163,32 @@ const DepositTabComp: React.FC<{
             </form>
           </CardContent>
           <CardFooter>
-            {getLegacyId(Number(selectedChain)) === chainId ? (
-              <Button
-                onClick={handleDeposit}
-                disabled={
-                  isPending || isConfirming || Number(depositAmount) === 0
-                }
-              >
-                {isPending
-                  ? "Confirming..."
-                  : isConfirming
-                  ? "Processing..."
-                  : "Deposit"}
-              </Button>
+          {getLegacyId(Number(selectedChain)) === chainId ? (
+              selectedToken === "wstETH" && !isApproved && Number(depositAmount) !== 0? (
+                <Button
+                  onClick={handleApprove}
+                  disabled={isPending || isConfirming}
+                >
+                  {isPending
+                    ? "Approving..."
+                    : isConfirming
+                    ? "Processing..."
+                    : "Approve wstETH"}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleDeposit}
+                  disabled={
+                    isPending || isConfirming || Number(depositAmount) === 0
+                  }
+                >
+                  {isPending
+                    ? "Confirming..."
+                    : isConfirming
+                    ? "Processing..."
+                    : "Deposit"}
+                </Button>
+              )
             ) : (
               <Button
                 onClick={() =>

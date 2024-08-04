@@ -119,11 +119,6 @@ const CrossChainLendingApp: React.FC = () => {
   const { switchChain } = useSwitchChain();
   const chainId = useChainId();
 
-  useEffect(() => {
-    console.log(listNFTs);
-    console.log(selectedNFT);
-  }, [listNFTs]);
-
   const { data: balanceData } = useReadContract({
     address: NFT_CONTRACT_ADDRESS,
     abi: coreNFTAbi,
@@ -330,10 +325,6 @@ const CrossChainLendingApp: React.FC = () => {
     switchChain({ chainId: newChainId });
   };
 
-  useEffect(() => {
-    console.log(wallets);
-  }, [wallets]);
-
   const NFTSelector: React.FC = () => {
     if (listNFTs.length === 0) {
       return <MintNFTButton />;
@@ -417,14 +408,8 @@ const CrossChainLendingApp: React.FC = () => {
   const ManageTab: React.FC = () => {
     const [newWalletAddress, setNewWalletAddress] = useState<string>("");
 
-    useEffect(() => {
-      console.log(nftData);
-      console.log(balance);
-      console.log(nftData);
-    }, [listNFTs]);
 
     const handleWalletAutogasToggle = (index: number, chainIndex?: number) => {
-      console.log(index, chainIndex);
       setWallets((prev) => {
         const newWallets = [...prev];
         const targetWallet = { ...newWallets[index] };
@@ -536,7 +521,6 @@ const CrossChainLendingApp: React.FC = () => {
         const newLimits = wallet.limits.map((limit) =>
           BigInt(parseEther(limit))
         );
-        console.log(newLimits);
         writeContract({
           address: NFT_CONTRACT_ADDRESS,
           abi: coreNFTAbi,
@@ -831,7 +815,7 @@ const CrossChainLendingApp: React.FC = () => {
     >([]);
     const chainId = useChainId();
     const [selectChain, setSelectedChain] = useState<string>(
-      getLZId(chainId).toString()
+      getLZId(chainId).toString() ?? "1"
     );
     useEffect(() => {
       setWalletBorrowPositions(

@@ -26,7 +26,6 @@ import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import lendingRawAbi from "../abi/CrossChainLendingContract.abi.json";
-import parseDumbAbis from "../abi/parsedCoreNFTAbi";
 import { Toaster } from "./ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "./ui/toast";
@@ -35,8 +34,6 @@ import { VStack, Text, HStack, Flex } from "@chakra-ui/react";
 import { NFT } from "@/CrossChainLendingApp";
 
 const backendUrl = "http://localhost:3000";
-
-
 
 const HandleBorrow: React.FC<{
   selectedNFT: NFT | undefined;
@@ -49,23 +46,20 @@ const HandleBorrow: React.FC<{
   const [customError, setCustomError] = useState<string>("");
   const [borrowNonce, setBorrowNonce] = useState<bigint | undefined>(undefined);
   const { address } = useAccount();
-  const lendingContractAbi = parseDumbAbis(lendingRawAbi);
   const { toast } = useToast();
   const { chains, switchChain } = useSwitchChain();
 
   const { data: nonce, refetch: refetchNonce } = useReadContract({
     address: getChainLendingAddress(getLZId(chainId)),
-    abi: lendingContractAbi,
+    abi: lendingRawAbi,
     functionName: "getCurrentNonce",
     args: [selectedNFT?.id ? BigInt(selectedNFT.id) : BigInt(0)],
   });
 
   useEffect(() => {
     if (nonce !== null && nonce !== undefined) {
-      console.log("nonce fetched", nonce);
       setBorrowNonce(BigInt(nonce.toString()));
     } else {
-      console.log("nonce is null or undefined");
       setBorrowNonce(undefined);
     }
   }, [nonce]);
@@ -158,31 +152,9 @@ const HandleBorrow: React.FC<{
         )
       );
       try {
-        console.log([
-          address as `0x${string}`,
-          BigInt(selectedNFT.id),
-          parseEther(withdrawAmount),
-          timestamp,
-          borrowNonce,
-          BigInt(getLZId(chainId)),
-        ]);
-        console.log(messageHash);
-        console.log(toBytes(messageHash));
         const signature = await signMessageAsync({
-          // message: { raw: messageHash },
           message: { raw: toBytes(messageHash) },
         });
-        console.log(signature);
-        const addressx = await recoverAddress({
-          hash: toBytes(messageHash),
-          signature: signature,
-        });
-        console.log(addressx);
-        const address2 = await recoverAddress({
-          hash: toHex(messageHash),
-          signature: signature,
-        });
-        console.log(address2);
         if (typeof signature === "string") {
           toast({
             title: "Processing gasless borrow...",
@@ -268,7 +240,7 @@ const HandleBorrow: React.FC<{
       if (status === "borrow_approved") {
         writeContract({
           address: getChainLendingAddress(getLZId(chainId)),
-          abi: lendingContractAbi,
+          abi: lendingRawAbi,
           functionName: "borrow",
           args: [
             BigInt(selectedNFT.id),
@@ -301,13 +273,12 @@ const HandleBorrow: React.FC<{
 
   return (
     // <div style={{ display: "flex", flexDirection: "row", gap: 10 }}>
-    <Flex alignContent='left'>
-      <VStack align='left'>
+    <Flex alignContent="left">
+      <VStack align="left">
         <HStack>
           <Text>Gasless</Text>
           <> </>
           <Checkbox
-            disabled={!selectedNFT?.owner}
             checked={gaslessBorrow}
             onCheckedChange={() => setGaslessBorrow(!gaslessBorrow)}
           />
