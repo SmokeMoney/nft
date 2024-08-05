@@ -7,41 +7,44 @@
   background-color: #505050;
   color: white;
 }
-/* .PopoverContent {
-  border-radius: 4px;
-  padding: 20px;
-  width: 260px;
-  background-color: rgb(0, 0, 0);
-  box-shadow: hsl(206 22% 7% / 35%) 0px 10px 38px -10px, hsl(206 22% 7% / 20%) 0px 10px 20px -15px;
-  animation-duration: 400ms;
-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, opacity;
+.tab-content {
+  font-size: x-large;
 }
-.PopoverContent:focus {
-  box-shadow: hsl(206 22% 7% / 35%) 0px 10px 38px -10px, hsl(206 22% 7% / 20%) 0px 10px 20px -15px,
-    0 0 0 2px var(--violet-7);
+.table {
+  font-size: large;
 }
-.PopoverContent[data-state='open'][data-side='top'] {
-  animation-name: slideDownAndFade;
+.withdraw-card {
+  font-size: large;
 }
-.PopoverContent[data-state='open'][data-side='right'] {
-  animation-name: slideLeftAndFade;
+.fontSizeLarge {
+  font-size: large;
 }
-.PopoverContent[data-state='open'][data-side='bottom'] {
-  animation-name: slideUpAndFade;
+.fontSizeXLarge {
+  font-size: xx-large;
 }
-.PopoverContent[data-state='open'][data-side='left'] {
-  animation-name: slideRightAndFade;
-} */
+
+.app-logo {
+  height: 69px; /* Adjust this value to match your desired logo size */
+  width: auto; /* This maintains the aspect ratio of your logo */
+  margin-right: 20px; /* Adds some space between the logo and other elements */
+  padding-left: 25px;
+}
+
+/* Make the logo responsive */
+@media (max-width: 768px) {
+  .app-logo {
+    height: 30px; /* Smaller size for mobile devices */
+  }
+}
 
 /* Responsive adjustments */
-@media (max-width: 480px) {
+@media (max-width: 2480px) {
   .container {
     padding: 1rem;
   }
 
   .chakra-tabs__tab {
-    font-size: 0.875rem;
+    font-size: 2rem;
   }
 }
 

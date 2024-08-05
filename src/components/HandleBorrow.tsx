@@ -29,11 +29,11 @@ import lendingRawAbi from "../abi/CrossChainLendingContract.abi.json";
 import { Toaster } from "./ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "./ui/toast";
-import { Card } from "./ui/card";
+import '../CrossChainLendingApp.css';
 import { VStack, Text, HStack, Flex } from "@chakra-ui/react";
-import { NFT } from "@/CrossChainLendingApp";
+import CrossChainLendingApp, { NFT } from "@/CrossChainLendingApp";
 
-const backendUrl = "http://localhost:3000";
+const backendUrl = import.meta.env.VITE_BACKEND_URL!;
 
 const HandleBorrow: React.FC<{
   selectedNFT: NFT | undefined;
@@ -286,6 +286,7 @@ const HandleBorrow: React.FC<{
         {getLegacyId(Number(selectedChain)) === chainId ? (
           <form onSubmit={handleSubmit}>
             <Button
+            className="fontSizeLarge"
               type="submit"
               disabled={
                 Number(withdrawAmount) === 0 || isPending || isConfirming
@@ -300,12 +301,13 @@ const HandleBorrow: React.FC<{
           </form>
         ) : (
           <Button
+            className="fontSizeLarge"
             onClick={() => switchToChain(getLegacyId(Number(selectedChain)))}
           >
             Switch Chain
           </Button>
         )}
-        <Card>
+        <Text>
           {error && (
             <div>
               Error:{" "}
@@ -330,7 +332,7 @@ const HandleBorrow: React.FC<{
               </a>
             </div>
           )}
-        </Card>
+        </Text>
       </VStack>
       <Toaster />
     </Flex>
