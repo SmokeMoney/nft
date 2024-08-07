@@ -29,7 +29,7 @@ import lendingRawAbi from "../abi/CrossChainLendingContract.abi.json";
 import { Toaster } from "./ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "./ui/toast";
-import '../CrossChainLendingApp.css';
+import "../CrossChainLendingApp.css";
 import { VStack, Text, HStack, Flex } from "@chakra-ui/react";
 import CrossChainLendingApp, { NFT } from "@/CrossChainLendingApp";
 
@@ -40,17 +40,43 @@ const HandleBorrow: React.FC<{
   withdrawAmount: string;
   chainId: number;
   selectedChain: string;
-}> = ({ selectedNFT, withdrawAmount, chainId, selectedChain }) => {
+  updateDataCounter: number;
+  setUpdateDataCounter: any;
+}> = ({
+  selectedNFT,
+  withdrawAmount,
+  chainId,
+  selectedChain,
+  updateDataCounter,
+  setUpdateDataCounter,
+}) => {
   const [gaslessBorrow, setGaslessBorrow] = useState<boolean>(false);
   const [recentBorrowAmount, setRecentBorrowAmount] = useState<string>("");
   const [customError, setCustomError] = useState<string>("");
   const [borrowNonce, setBorrowNonce] = useState<bigint | undefined>(undefined);
+  const [lendingAddress, setLendingAddress] = useState<`0x${string}` | undefined>(undefined);
+
   const { address } = useAccount();
   const { toast } = useToast();
   const { chains, switchChain } = useSwitchChain();
 
+  useEffect(() => {
+    try {
+      const address = getChainLendingAddress(getLZId(chainId));
+      setLendingAddress(address);
+    } catch (error) {
+      console.error("Error getting lending address:", error);
+      setLendingAddress(undefined);
+      toast({
+        title: "Unsupported Chain",
+        description: "The selected chain is not supported for borrowing.",
+        variant: "destructive",
+      });
+    }
+  }, [chainId]);
+
   const { data: nonce, refetch: refetchNonce } = useReadContract({
-    address: getChainLendingAddress(getLZId(chainId)),
+    address: lendingAddress,
     abi: lendingRawAbi,
     functionName: "getCurrentNonce",
     args: [selectedNFT?.id ? BigInt(selectedNFT.id) : BigInt(0)],
@@ -131,7 +157,7 @@ const HandleBorrow: React.FC<{
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedNFT || Number(withdrawAmount) === 0) {
+    if (!selectedNFT || Number(withdrawAmount) <= 0) {
       return;
     }
 
@@ -166,6 +192,7 @@ const HandleBorrow: React.FC<{
           );
           toast({ description: "processing" });
 
+          setUpdateDataCounter(updateDataCounter + 1);
           if (result) {
             console.log("Gasless borrow transaction hash:", result);
             result.status === "borrow_approved"
@@ -250,6 +277,7 @@ const HandleBorrow: React.FC<{
             signature,
           ],
         });
+        setUpdateDataCounter(updateDataCounter + 1);
       } else if (status === "not_enough_limit") {
         console.error("Borrow limit reached");
         setCustomError("You don't have enough limit to borrow");
@@ -286,7 +314,7 @@ const HandleBorrow: React.FC<{
         {getLegacyId(Number(selectedChain)) === chainId ? (
           <form onSubmit={handleSubmit}>
             <Button
-            className="fontSizeLarge"
+              className="fontSizeLarge"
               type="submit"
               disabled={
                 Number(withdrawAmount) === 0 || isPending || isConfirming
@@ -309,17 +337,17 @@ const HandleBorrow: React.FC<{
         )}
         <Text>
           {error && (
-            <div>
+            <>
               Error:{" "}
               {error.message.includes("ERC20: burn amount exceeds balance")
                 ? "Borrow unavailable right now"
                 : "Unknown reason"}
-            </div>
+            </>
           )}
-          {customError !== "" ? <div>Error: {customError}</div> : ""}
-          {isConfirming && <div>Waiting for confirmation...</div>}
+          {customError !== "" ? <>Error: {customError}</> : ""}
+          {isConfirming && <>Waiting for confirmation...</>}
           {isConfirmed && (
-            <div>
+            <>
               Borrowed {recentBorrowAmount},{" "}
               <a
                 href={getChainExplorer(getLZId(chainId)) + "tx/" + hash}
@@ -330,7 +358,7 @@ const HandleBorrow: React.FC<{
               >
                 View on Explorer
               </a>
-            </div>
+            </>
           )}
         </Text>
       </VStack>

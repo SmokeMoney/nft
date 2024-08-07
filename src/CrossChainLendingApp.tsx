@@ -13,7 +13,7 @@ import {
 } from "wagmi";
 import { getBalance } from "@wagmi/core";
 import { formatEther, formatUnits, parseEther } from "viem";
-import { arbitrumSepolia } from "wagmi/chains";
+import { arbitrumSepolia, berachainTestnetbArtio } from "wagmi/chains";
 import { Address } from "viem";
 import { AlignCenter, ChevronDownCircle, ChevronUpCircle } from "lucide-react";
 import axios from "axios";
@@ -41,6 +41,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import DepositTabComp from "@/components/DepositTab"; // Adjust the import path as necessary
+import RepayTab from "@/components/RepayTab"; // Add this import
 import logo from "../public/logo4.png";
 import * as Popover from "@radix-ui/react-popover";
 
@@ -119,6 +120,7 @@ const CrossChainLendingApp: React.FC = () => {
   const [listNFTs, setListNFTs] = useState<NFT[]>([]);
   const [wallets, setWallets] = useState<WalletConfig[]>([]);
   const [supportedChain, setSupportedChain] = useState<boolean>(false);
+  const [updateDataCounter, setUpdateDataCounter] = useState<number>(0);
 
   const [chainList2, setChainList2] = useState<string[]>([]);
   const { address, isConnected } = useAccount();
@@ -132,6 +134,21 @@ const CrossChainLendingApp: React.FC = () => {
     functionName: "balanceOf",
     args: [address as Address],
   });
+
+  useEffect(() => {
+    if (chainId) {
+      const legacyId = getLZId(chainId);
+      if (legacyId && chainIds.some((chain) => chain === legacyId)) {
+        setSupportedChain(true);
+      }
+      else {
+        setSupportedChain(false);
+      }
+    }
+    else {
+      setSupportedChain(false);
+    }
+  }, [chainId, chains ]);
 
   const balance = balanceData ? Number(balanceData) : 0;
 
@@ -283,6 +300,10 @@ const CrossChainLendingApp: React.FC = () => {
     }
   }, [walletList, walletConfigs, selectedNFT]);
 
+  function areNFTsDifferent(nft1: NFT, nft2: NFT): boolean {
+    return JSON.stringify(nft1) !== JSON.stringify(nft2);
+  }
+
   useEffect(() => {
     const fetchNFTsAndBalance = async () => {
       if (isConnected && address) {
@@ -306,6 +327,15 @@ const CrossChainLendingApp: React.FC = () => {
           console.log("Setting new selected NFT:", fetchedNFTs[0]);
           setSelectedNFT(fetchedNFTs[0]);
         }
+        if (
+          selectedNFT &&
+          areNFTsDifferent(
+            selectedNFT,
+            fetchedNFTs.find((nft) => nft.id === selectedNFT.id) as NFT
+          )
+        ) {
+          setSelectedNFT(fetchedNFTs.find((nft) => nft.id === selectedNFT.id));
+        }
       }
       if (address) {
         const freshBalance = await getBalance(config, { address: address });
@@ -313,7 +343,7 @@ const CrossChainLendingApp: React.FC = () => {
       }
     };
     fetchNFTsAndBalance();
-  }, [isConnected, address, selectedNFT]);
+  }, [isConnected, address, selectedNFT, updateDataCounter]);
 
   useEffect(() => {
     const balanceUpdate = async () => {
@@ -347,7 +377,7 @@ const CrossChainLendingApp: React.FC = () => {
         <Text className="fontSizeLarge">Your Smoke NFT:</Text>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="fontSizeLarge">
+            <Button className="fontSizeLarge" variant={"secondary"}>
               NFT ID: {selectedNFT?.id.toString()}
             </Button>
           </DropdownMenuTrigger>
@@ -398,24 +428,37 @@ const CrossChainLendingApp: React.FC = () => {
 
     return (
       <div>
-        <h2>Mint NFT</h2>
-        {chainId === arbitrumSepolia.id ? (
-          <form onSubmit={submit}>
-            <h3>Mint for: 0.02 ETH</h3>
-            You don't own a card yet.
-            <Button disabled={isPending} type="submit">
-              {isPending ? "Confirming..." : "Mint"}
-            </Button>
-          </form>
-        ) : (
-          <Button onClick={switchToAdminChain}>Switch to Arbitrum</Button>
-        )}
-        {hash && <div>Transaction Hash: {hash}</div>}
-        {isConfirming && "Waiting for confirmation..."}
-        {isConfirmed && "Transaction confirmed."}
-        {error && (
-          <div>Error: {(error as BaseError).shortMessage || error.message}</div>
-        )}
+        <Flex justify="center" align="stretch" w="full" px={4}>
+          <Flex
+            direction={{ base: "column", md: "row" }}
+            justify="center"
+            align="stretch"
+            gap={16}
+            w="full"
+            px={40}
+          >
+            <h2>Mint NFT</h2>
+            {chainId === arbitrumSepolia.id ? (
+              <form onSubmit={submit}>
+                <h3>Mint for: 0.02 ETH</h3>
+                You don't own a card yet.
+                <Button disabled={isPending} type="submit">
+                  {isPending ? "Confirming..." : "Mint"}
+                </Button>
+              </form>
+            ) : (
+              <Button onClick={switchToAdminChain}>Switch to Arbitrum</Button>
+            )}
+            {hash && <div>Transaction Hash: {hash}</div>}
+            {isConfirming && "Waiting for confirmation..."}
+            {isConfirmed && "Transaction confirmed."}
+            {error && (
+              <div>
+                Error: {(error as BaseError).shortMessage || error.message}
+              </div>
+            )}
+          </Flex>
+        </Flex>
       </div>
     );
   };
@@ -512,6 +555,14 @@ const CrossChainLendingApp: React.FC = () => {
       }
     };
 
+    const updateLimitsData = async (nftId: string, walletAddress: string) => {
+      const response = await axios.post(`${backendUrl}/api/updatelimits`, {
+        nftId: nftId,
+        walletAddress: walletAddress,
+      });
+      return response.data.status === "update_successful";
+    };
+
     const saveChanges = (wallet: WalletConfig, index: number) => {
       const {
         data: hash,
@@ -550,17 +601,27 @@ const CrossChainLendingApp: React.FC = () => {
       };
 
       React.useEffect(() => {
-        if (isConfirmed) {
-          setWallets((prev) => {
-            const newWallets = [...prev];
-            newWallets[index] = {
-              ...newWallets[index],
-              isModified: false,
-              transactionHash: null,
-            };
-            return newWallets;
-          });
-        }
+        const updateLimitsDataMeta = async () => {
+          if (isConfirmed && address) {
+            const updateStatus = await updateLimitsData(
+              selectedNFT?.id ?? "0",
+              address
+            );
+            if (updateStatus) {
+              setUpdateDataCounter(updateDataCounter + 1);
+            }
+            setWallets((prev) => {
+              const newWallets = [...prev];
+              newWallets[index] = {
+                ...newWallets[index],
+                isModified: false,
+                transactionHash: null,
+              };
+              return newWallets;
+            });
+          }
+        };
+        updateLimitsDataMeta();
       }, [isConfirmed]);
 
       return (
@@ -709,27 +770,41 @@ const CrossChainLendingApp: React.FC = () => {
 
       return (
         <div>
-          <Flex justify="center" align="stretch" w="full" px={4} paddingTop={10}>
-            <Flex
-              direction={{ base: "column", md: "row" }}
-              justify="center"
-              align="stretch"
-              gap={16}
-              w="full"
-              px={40}
-            >
-              <Card>
-                <Table className="fontSizeLarge">
-                  <TableHeader>
+          <Card>
+            <Table className="fontSizeLarge">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Wallet Address</TableHead>
+                  <TableHead>Limit</TableHead>
+                  <TableHead>Autogas</TableHead>
+                  <TableHead>Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: 10,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Input
+                        type="text"
+                        value={newWalletAddress}
+                        onChange={(e) => setNewWalletAddress(e.target.value)}
+                        placeholder="Enter new wallet address"
+                      />
+                      <Button onClick={handleAddWallet}>Add Wallet</Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {wallets.map((wallet, index) => (
+                  <React.Fragment key={wallet.address}>
                     <TableRow>
-                      <TableHead>Wallet Address</TableHead>
-                      <TableHead>Limit</TableHead>
-                      <TableHead>Autogas</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
+                      <TableCell>{wallet.address}</TableCell>
                       <TableCell>
                         <div
                           style={{
@@ -737,106 +812,86 @@ const CrossChainLendingApp: React.FC = () => {
                             flexDirection: "row",
                             gap: 10,
                             alignItems: "center",
+                            textAlign: "right",
                           }}
                         >
-                          <Input
-                            type="text"
-                            value={newWalletAddress}
-                            onChange={(e) =>
-                              setNewWalletAddress(e.target.value)
-                            }
-                            placeholder="Enter new wallet address"
-                          />
-                          <Button onClick={handleAddWallet}>Add Wallet</Button>
+                          {wallet.limits.every(
+                            (limit) => limit === wallet.limits[0]
+                          )
+                            ? wallet.isExpanded
+                              ? "Being Configured"
+                              : `${wallet.limits[0]} ETH`
+                            : "Different limits"}
+                          {getEditButton(wallet, index)}
                         </div>
                       </TableCell>
+                      <TableCell>{getAutogasDisplay(wallet)}</TableCell>
+                      <TableCell>{saveChanges(wallet, index)}</TableCell>
                     </TableRow>
-                    {wallets.map((wallet, index) => (
-                      <React.Fragment key={wallet.address}>
-                        <TableRow>
-                          <TableCell>{wallet.address}</TableCell>
-                          <TableCell>
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "row",
-                                gap: 10,
-                                alignItems: "center",
-                                textAlign: "right",
-                              }}
-                            >
-                              {wallet.limits.every(
-                                (limit) => limit === wallet.limits[0]
-                              )
-                                ? wallet.isExpanded
-                                  ? "Being Configured"
-                                  : `${wallet.limits[0]} ETH`
-                                : "Different limits"}
-                              {getEditButton(wallet, index)}
-                            </div>
-                          </TableCell>
-                          <TableCell>{getAutogasDisplay(wallet)}</TableCell>
-                          <TableCell>{saveChanges(wallet, index)}</TableCell>
-                        </TableRow>
-                        {wallet.isExpanded && (
-                          <TableRow>
-                            <TableCell colSpan={4}>
-                              <Table className="fontSizeLarge">
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Chain ID</TableHead>
-                                    <TableHead>Autogas</TableHead>
-                                    <TableHead>Limit</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {chainList2.map((chainId, chainIndex) => (
-                                    <TableRow key={chainId.toString()}>
-                                      <TableCell>
-                                        {getChainName(Number(chainId))}
-                                      </TableCell>
-                                      <TableCell>
-                                        {getAutogasDisplay(wallet, chainIndex)}
-                                      </TableCell>
-                                      <TableCell>
-                                        {wallet.limits[chainIndex]} ETH
-                                        {getEditButton(
-                                          wallet,
-                                          index,
-                                          chainIndex
-                                        )}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
-            </Flex>
-          </Flex>
+                    {wallet.isExpanded && (
+                      <TableRow>
+                        <TableCell colSpan={4}>
+                          <Table className="fontSizeLarge">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Chain ID</TableHead>
+                                <TableHead>Autogas</TableHead>
+                                <TableHead>Limit</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {chainList2.map((chainId, chainIndex) => (
+                                <TableRow key={chainId.toString()}>
+                                  <TableCell>
+                                    {getChainName(Number(chainId))}
+                                  </TableCell>
+                                  <TableCell>
+                                    {getAutogasDisplay(wallet, chainIndex)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {wallet.limits[chainIndex]} ETH
+                                    {getEditButton(wallet, index, chainIndex)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         </div>
       );
     };
 
     return (
       <div className="tab-content">
-        {chainId === arbitrumSepolia.id ? (
-          <>
-            {listNFTs.length > 0 && (
-              <div>
-                <WalletConfigTable />
-              </div>
+        <Flex justify="center" align="stretch" w="full" px={4} paddingTop={10}>
+          <Flex
+            direction={{ base: "column", md: "row" }}
+            justify="center"
+            align="stretch"
+            gap={16}
+            w="full"
+            px={40}
+          >
+            {chainId === arbitrumSepolia.id ? (
+              <>
+                {listNFTs.length > 0 && (
+                  <div>
+                    <WalletConfigTable />
+                  </div>
+                )}
+              </>
+            ) : (
+              <Button onClick={switchToAdminChain}>Switch to Arbitrum</Button>
             )}
-          </>
-        ) : (
-          <Button onClick={switchToAdminChain}>Switch to Arbitrum</Button>
-        )}
+          </Flex>
+        </Flex>
       </div>
     );
   };
@@ -857,14 +912,6 @@ const CrossChainLendingApp: React.FC = () => {
       );
     }, [selectedNFT]);
 
-    useEffect(() => {
-      if (chainId) {
-        const legacyId = getLZId(chainId);
-        if (legacyId && chainIds.some((chain) => chain === legacyId)) {
-          setSupportedChain(true);
-        }
-      }
-    }, [chainId]);
 
     return (
       <div className="tab-content">
@@ -887,7 +934,8 @@ const CrossChainLendingApp: React.FC = () => {
                       <CardHeader>
                         <CardTitle>Withdraw</CardTitle>
                         <CardDescription className="fontSizeLarge">
-                          Withdraw ETH on {getChainName(Number(selectChain))}
+                          Withdraw {selectChain === "40291" ? "BERA" : "ETH"} on{" "}
+                          {getChainName(Number(selectChain))}
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -905,6 +953,8 @@ const CrossChainLendingApp: React.FC = () => {
                           withdrawAmount={withdrawAmount}
                           chainId={chainId}
                           selectedChain={selectChain}
+                          updateDataCounter={updateDataCounter}
+                          setUpdateDataCounter={setUpdateDataCounter}
                         />
                       </CardFooter>
                     </Card>
@@ -938,6 +988,19 @@ const CrossChainLendingApp: React.FC = () => {
                                 <TableCell>
                                   {Number(
                                     formatEther(
+                                      ((totalWethDeposits +
+                                        (totalWstEthDeposits *
+                                          BigInt(wstETHRatio)) /
+                                          parseEther("1")) *
+                                        BigInt(90)) /
+                                        BigInt(100) -
+                                        BigInt(
+                                          selectedNFT?.totalBorrowPosition ?? 0
+                                        )
+                                    )
+                                  ) >
+                                  Number(
+                                    formatEther(
                                       BigInt(limit) -
                                         BigInt(
                                           walletBorrowPositions.find(
@@ -946,8 +1009,33 @@ const CrossChainLendingApp: React.FC = () => {
                                           )?.amount ?? "0"
                                         )
                                     )
-                                  ).toPrecision(5)}{" "}
-                                  ETH
+                                  )
+                                    ? Number(
+                                        formatEther(
+                                          BigInt(limit) -
+                                            BigInt(
+                                              walletBorrowPositions.find(
+                                                (position) =>
+                                                  position.chainId === chainId2
+                                              )?.amount ?? "0"
+                                            )
+                                        )
+                                      ).toPrecision(5)
+                                    : Number(
+                                        formatEther(
+                                          ((totalWethDeposits +
+                                            (totalWstEthDeposits *
+                                              BigInt(wstETHRatio)) /
+                                              parseEther("1")) *
+                                            BigInt(90)) /
+                                            BigInt(100) -
+                                            BigInt(
+                                              selectedNFT?.totalBorrowPosition ??
+                                                0
+                                            )
+                                        )
+                                      ).toPrecision(5)}{" "}
+                                  {chainId2 === "40291" ? "BERA" : "ETH"}
                                 </TableCell>
                                 <TableCell>5%</TableCell>
                                 <TableCell>
@@ -1006,7 +1094,13 @@ const CrossChainLendingApp: React.FC = () => {
   };
 
   const DepositTab: React.FC = () => {
-    return <DepositTabComp selectedNFT={selectedNFT ?? blankNFT(BigInt(0))} />;
+    return (
+      <DepositTabComp
+        selectedNFT={selectedNFT ?? blankNFT(BigInt(0))}
+        updateDataCounter={updateDataCounter}
+        setUpdateDataCounter={setUpdateDataCounter}
+      />
+    );
   };
 
   const totalWethDeposits = BigInt(
@@ -1056,20 +1150,30 @@ const CrossChainLendingApp: React.FC = () => {
               <Button
                 className="fontSizeLarge"
                 onClick={() => setActiveTab("manage")}
+                variant={activeTab === "manage" ? "secondary" : "default"}
               >
                 Manage
               </Button>
               <Button
                 className="fontSizeLarge"
                 onClick={() => setActiveTab("withdraw")}
+                variant={activeTab === "withdraw" ? "secondary" : "default"}
               >
                 Smoke
               </Button>
               <Button
                 className="fontSizeLarge"
                 onClick={() => setActiveTab("deposit")}
+                variant={activeTab === "deposit" ? "secondary" : "default"}
               >
                 Deposit
+              </Button>
+              <Button
+                className="fontSizeLarge"
+                onClick={() => setActiveTab("repay")}
+                variant={activeTab === "repay" ? "secondary" : "default"}
+              >
+                Repay
               </Button>
             </HStack>
           </Flex>
@@ -1112,7 +1216,7 @@ const CrossChainLendingApp: React.FC = () => {
                       {ethOrUSD ? " USD" : " ETH"}
                     </HoverCardTrigger>
                     <HoverCardContent>
-                      <p>
+                      <Text>
                         ETH Deposits:{" "}
                         {formatEther(
                           BigInt(
@@ -1124,8 +1228,8 @@ const CrossChainLendingApp: React.FC = () => {
                           )
                         )}{" "}
                         ETH
-                      </p>
-                      <p>
+                      </Text>
+                      <Text>
                         wstETH Deposits:{" "}
                         {formatEther(
                           BigInt(
@@ -1137,7 +1241,7 @@ const CrossChainLendingApp: React.FC = () => {
                           )
                         )}{" "}
                         wstETH
-                      </p>
+                      </Text>
                     </HoverCardContent>
                   </HoverCard>
                 </Text>
@@ -1206,6 +1310,7 @@ const CrossChainLendingApp: React.FC = () => {
         {activeTab === "manage" && <ManageTab />}
         {activeTab === "withdraw" && <WithdrawTab />}
         {activeTab === "deposit" && <DepositTab />}
+        {activeTab === "repay" && <RepayTab selectedNFT={selectedNFT} />}
       </div>
     </div>
   );

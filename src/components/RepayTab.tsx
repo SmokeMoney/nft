@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { Address, formatEther, parseEther } from "viem";
 import {
+  useAccount,
+  useChainId,
   useWriteContract,
   useWaitForTransactionReceipt,
-  useChainId,
   useSwitchChain,
-  useReadContract,
-  useAccount,
 } from "wagmi";
+import { formatEther, parseEther } from "viem";
 import {
   Card,
-  CardContent,
   CardHeader,
+  CardContent,
+  CardFooter,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -26,40 +25,42 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
+import { Box, Flex, Text, VStack, HStack } from "@chakra-ui/react";
 import {
   getChainLendingAddress,
   getChainName,
-  getDepositAddress,
   getLegacyId,
   getLZId,
-  getWstETHAddress,
 } from "../utils/chainMapping";
+import lendingRawAbi from "../abi/CrossChainLendingContract.abi.json";
+
 import { NFT } from "@/CrossChainLendingApp";
-import depositRawAbi from "../abi/AdminDepositContract.abi.json";
-import erc20Abi from "../abi/ERC20.abi.json"; // Make sure you have this ABI
-import { Flex } from "@chakra-ui/react";
+import { Button } from "./ui/button";
+import { ChevronDownCircle, ChevronUpCircle } from "lucide-react";
+interface ChainBorrowPositions {
+  chainId: string;
+  totalAmount: string;
+  wallets: {
+    address: string;
+    amount: string;
+  }[];
+}
+const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
+  selectedNFT,
+}) => {
+  const [repayAmount, setRepayAmount] = useState<string>("");
+  const [selectedWallets, setSelectedWallets] = useState<{
+    [chainId: string]: string[];
+  }>({});
+  const [expandedChains, setExpandedChains] = useState<string[]>([]);
+  const [chainBorrowPositions, setChainBorrowPositions] = useState<
+    ChainBorrowPositions[]
+  >([]);
+  const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
 
-const DepositTabComp: React.FC<{
-  selectedNFT: NFT;
-}> = ({ selectedNFT }) => {
-  const [depositAmount, setDepositAmount] = useState("");
-  const [selectedToken, setSelectedToken] = useState("wstETH");
-  const [selectedChain, setSelectedChain] = useState("");
-  const [isApproved, setIsApproved] = useState(false);
-  const chainId = useChainId();
   const { address } = useAccount();
+  const chainId = useChainId();
   const { switchChain } = useSwitchChain();
-
-  useEffect(() => {
-    setSelectedChain(getLZId(chainId).toString());
-  }, [chainId]);
-
-  const switchToChain = async (newChainId: any) => {
-    switchChain({ chainId: newChainId });
-  };
 
   const { data: hash, error, isPending, writeContract } = useWriteContract();
 
@@ -67,191 +68,320 @@ const DepositTabComp: React.FC<{
     useWaitForTransactionReceipt({
       hash,
     });
-  // Check if the contract is approved to spend wstETH
-  const { data: allowance } = useReadContract({
-    address: getWstETHAddress(getLZId(chainId)),
-    abi: erc20Abi,
-    functionName: "allowance",
-    args: [address as Address, getDepositAddress(getLZId(chainId))], // owner, spender
-  }) as { data: bigint | undefined; isError: boolean };
 
   useEffect(() => {
-    if (allowance !== undefined && depositAmount) {
-      console.log(allowance);
-      try {
-        const parsedAmount = parseEther(depositAmount);
-        setIsApproved(allowance >= parsedAmount);
-      } catch (error) {
-        console.error("Error parsing deposit amount:", error);
-        setIsApproved(false);
-      }
-    } else {
-      setIsApproved(false);
+    if (selectedNFT) {
+      const positions: ChainBorrowPositions[] = [];
+      selectedNFT.borrowPositions.forEach((walletPosition) => {
+        walletPosition.borrowPositions.forEach((position) => {
+          let chainPosition = positions.find(
+            (p) => p.chainId === position.chainId
+          );
+          if (!chainPosition) {
+            chainPosition = {
+              chainId: position.chainId,
+              totalAmount: "0",
+              wallets: [],
+            };
+            positions.push(chainPosition);
+          }
+          chainPosition.totalAmount = (
+            BigInt(chainPosition.totalAmount) + BigInt(position.amount)
+          ).toString();
+          if (position.amount !== "0") {
+            chainPosition.wallets.push({
+              address: walletPosition.walletAddress,
+              amount: position.amount,
+            });
+          }
+        });
+      });
+      setChainBorrowPositions(positions);
     }
-  }, [allowance, depositAmount]);
+  }, [selectedNFT]);
 
-  const handleApprove = async () => {
-    if (!depositAmount) return;
+  const handleRepay = async () => {
+    if (!selectedNFT || !address || !selectedChainId) return;
 
-    writeContract({
-      address: getWstETHAddress(getLZId(chainId)),
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [getDepositAddress(getLZId(chainId)), parseEther(depositAmount)], // spender, amount
+    const nftIds: bigint[] = [];
+    const wallets: `0x${string}`[] = [];
+    const amounts: bigint[] = [];
+
+    selectedWallets[selectedChainId].forEach((walletAddress) => {
+      nftIds.push(BigInt(selectedNFT.id));
+      wallets.push(walletAddress as `0x${string}`);
+      const position = chainBorrowPositions
+        .find((pos) => pos.chainId === selectedChainId)
+        ?.wallets.find((w) => w.address === walletAddress);
+      amounts.push(BigInt(position?.amount || "0"));
+    });
+    console.log(amounts);
+    console.log(parseEther(repayAmount));
+
+    if (nftIds.length === 1) {
+      writeContract({
+        address: getChainLendingAddress(getLZId(chainId)),
+        abi: lendingRawAbi,
+        functionName: "repay",
+        args: [nftIds[0], wallets[0], address],
+        value: parseEther(repayAmount),
+      });
+    } else {
+      writeContract({
+        address: getChainLendingAddress(getLZId(chainId)),
+        abi: lendingRawAbi,
+        functionName: "repayMultiple",
+        args: [nftIds, wallets, amounts, address],
+        value: parseEther(repayAmount),
+      });
+    }
+  };
+
+  const handleWalletSelection = (chainId: string, walletAddress: string) => {
+    setSelectedWallets((prev) => {
+      const updatedWallets = { ...prev };
+      if (chainId !== selectedChainId) {
+        // Clear previous selections and set the new chain
+        updatedWallets[chainId] = [walletAddress];
+        setSelectedChainId(chainId);
+      } else {
+        if (!updatedWallets[chainId]) {
+          updatedWallets[chainId] = [];
+        }
+        if (updatedWallets[chainId].includes(walletAddress)) {
+          updatedWallets[chainId] = updatedWallets[chainId].filter(
+            (addr) => addr !== walletAddress
+          );
+        } else {
+          updatedWallets[chainId].push(walletAddress);
+        }
+        if (updatedWallets[chainId].length === 0) {
+          setSelectedChainId(null);
+        }
+      }
+      return updatedWallets;
     });
   };
 
-  const handleDeposit = async (e: any) => {
-    e.preventDefault();
-    if (!selectedNFT || !depositAmount) return;
+  const handleChainSelection = (chainId: string) => {
+    setSelectedWallets((prev) => {
+      const updatedWallets = { ...prev };
+      const chainPosition = chainBorrowPositions.find(
+        (p) => p.chainId === chainId
+      );
+      if (chainPosition) {
+        if (chainId !== selectedChainId) {
+          // Clear previous selections and select all wallets for the new chain
+          updatedWallets[chainId] = chainPosition.wallets.map((w) => w.address);
+          setSelectedChainId(chainId);
+        } else {
+          if (
+            updatedWallets[chainId]?.length === chainPosition.wallets.length
+          ) {
+            // Deselect all wallets for this chain
+            delete updatedWallets[chainId];
+            setSelectedChainId(null);
+          } else {
+            // Select all wallets for this chain
+            updatedWallets[chainId] = chainPosition.wallets.map(
+              (w) => w.address
+            );
+          }
+        }
+      }
+      return updatedWallets;
+    });
+  };
 
-    const amount = parseEther(depositAmount);
+  const toggleChainExpansion = (chainId: string) => {
+    setExpandedChains((prev) =>
+      prev.includes(chainId)
+        ? prev.filter((id) => id !== chainId)
+        : [...prev, chainId]
+    );
+  };
 
-    if (selectedToken === "ETH") {
-      writeContract({
-        address: getDepositAddress(getLZId(chainId)),
-        abi: depositRawAbi,
-        functionName: "depositETH",
-        args: [BigInt(selectedNFT.id), amount],
-        value: amount,
-      });
-    } else {
-      // For wstETH, you'd need to approve the contract to spend wstETH first
-      // Then call the deposit function
-      writeContract({
-        address: getDepositAddress(getLZId(chainId)),
-        abi: depositRawAbi,
-        functionName: "deposit",
-        args: [
-          getWstETHAddress(Number(selectedChain)),
-          BigInt(selectedNFT.id),
-          amount,
-        ],
-      });
+  useEffect(() => {
+    let totalRepayAmount = 0;
+    if (selectedChainId) {
+      const chainPosition = chainBorrowPositions.find(
+        (p) => p.chainId === selectedChainId
+      );
+      if (chainPosition) {
+        selectedWallets[selectedChainId].forEach((walletAddress) => {
+          const wallet = chainPosition.wallets.find(
+            (w) => w.address === walletAddress
+          );
+          if (wallet) {
+            totalRepayAmount += parseFloat(formatEther(BigInt(wallet.amount)));
+          }
+        });
+      }
+    }
+    setRepayAmount(totalRepayAmount.toFixed(18));
+  }, [selectedWallets, chainBorrowPositions, selectedChainId]);
+
+  const switchToChain = async (newChainId: any) => {
+    switchChain({ chainId: newChainId });
+  };
+
+  const handleSwitchChain = () => {
+    if (selectedChainId) {
+      const targetChainId = getLegacyId(Number(selectedChainId));
+      if (targetChainId) {
+        switchToChain(targetChainId);
+      }
     }
   };
 
+  if (!selectedNFT) {
+    return <div>Please select an NFT first.</div>;
+  }
+
+  const isCorrectChain = selectedChainId === getLZId(chainId).toString();
+
   return (
     <div className="tab-content">
-      {/* <div style={{ display: "flex", gap: "20px" }}> */}
-      <Flex gap={16} px={400} paddingTop={10}>
-        <Card style={{ flex: 1 }}>
-          <CardHeader>
-            <CardTitle>Deposit</CardTitle>
-            <CardDescription className="fontSizeLarge">
-              Deposit ETH or wstETH
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleDeposit}>
-              <div style={{ marginBottom: "10px" }}>
-                <RadioGroup
-                  defaultValue="wstETH"
-                  onValueChange={(e) => setSelectedToken(e)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="wstETH" id="option-one" />
-                    <Label htmlFor="option-one">wstETH</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="ETH" id="option-two" />
-                    <Label htmlFor="option-two">ETH</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+      <Flex
+        direction={{ base: "column", md: "row" }}
+        justify="center"
+        align="stretch"
+        gap={16}
+        padding={10}
+        w="full"
+        px={400}
+      >
+        <Box flex={1} maxW={{ base: "full", md: "800px" }}>
+          <Card className="fontSizeLarge">
+            <CardHeader>
+              <CardTitle>Repay</CardTitle>
+              <CardDescription className="fontSizeLarge">
+                Repay ETH for selected wallets
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <Input
+                className="fontSizeLarge"
                 type="number"
                 placeholder="Amount"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
+                value={repayAmount}
+                onChange={(e) => setRepayAmount(e.target.value)}
               />
-            </form>
-          </CardContent>
-          <CardFooter>
-            {getLegacyId(Number(selectedChain)) === chainId ? (
-              selectedToken === "wstETH" &&
-              !isApproved &&
-              Number(depositAmount) !== 0 ? (
+            </CardContent>
+            <CardFooter>
+              {isCorrectChain ? (
                 <Button
-                  onClick={handleApprove}
-                  disabled={isPending || isConfirming}
-                >
-                  {isPending
-                    ? "Approving..."
-                    : isConfirming
-                    ? "Processing..."
-                    : "Approve wstETH"}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleDeposit}
+                  onClick={handleRepay}
                   disabled={
-                    isPending || isConfirming || Number(depositAmount) === 0
+                    !repayAmount || repayAmount === "0" || !selectedChainId
                   }
                 >
-                  {isPending
-                    ? "Confirming..."
-                    : isConfirming
-                    ? "Processing..."
-                    : "Deposit"}
+                  Repay
                 </Button>
-              )
-            ) : (
-              <Button
-                onClick={() =>
-                  switchToChain(getLegacyId(Number(selectedChain)))
-                }
-              >
-                Switch Chain
-              </Button>
-            )}
-          </CardFooter>
-          {error && <div>Error: {error.message}</div>}
-          {isConfirmed && <div>Transaction confirmed!</div>}
-        </Card>
-
-        <Card style={{ flex: 2 }}>
-          <Table className="fontSizeLarge">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Chain</TableHead>
-                <TableHead>WETH Deposits</TableHead>
-                <TableHead>wstETH Deposits</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Object.entries(selectedNFT.chainLimits).map(([chainId, _]) => {
-                const wethDeposit =
-                  selectedNFT.wethDeposits.find((d) => d.chainId === chainId)
-                    ?.amount ?? "0";
-                const wstEthDeposit =
-                  selectedNFT.wstEthDeposits.find((d) => d.chainId === chainId)
-                    ?.amount ?? "0";
-                return (
-                  <TableRow
-                    key={chainId}
-                    className={
-                      selectedChain === chainId ? "SelectedBorRow" : ""
-                    }
-                    onClick={() => setSelectedChain(chainId)}
-                  >
-                    <TableCell>{getChainName(Number(chainId))}</TableCell>
-                    <TableCell>
-                      {formatEther(BigInt(wethDeposit))} WETH
-                    </TableCell>
-                    <TableCell>
-                      {formatEther(BigInt(wstEthDeposit))} wstETH
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Card>
+              ) : (
+                <Button onClick={handleSwitchChain} disabled={!selectedChainId}>
+                  Switch Chain
+                </Button>
+              )}
+              {error && <div>Error: {error.message}</div>}
+              {isConfirmed && <div>Transaction confirmed!</div>}
+            </CardFooter>
+          </Card>
+        </Box>
+        <Box flex={2}>
+          <Card>
+            <Table className="fontSizeLarge">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Chain</TableHead>
+                  <TableHead>Total Borrow Amount</TableHead>
+                  <TableHead>Select All</TableHead>
+                  <TableHead>Expand</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {chainBorrowPositions.map((chainPosition) => (
+                  <React.Fragment key={chainPosition.chainId}>
+                    <TableRow>
+                      <TableCell>
+                        {getChainName(Number(chainPosition.chainId))}
+                      </TableCell>
+                      <TableCell>
+                        {formatEther(BigInt(chainPosition.totalAmount))} ETH
+                      </TableCell>
+                      <TableCell>
+                        <Checkbox
+                          checked={
+                            selectedWallets[chainPosition.chainId]?.length ===
+                            chainPosition.wallets.length
+                          }
+                          onCheckedChange={() =>
+                            handleChainSelection(chainPosition.chainId)
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="icon"
+                          onClick={() =>
+                            toggleChainExpansion(chainPosition.chainId)
+                          }
+                        >
+                          {expandedChains.includes(chainPosition.chainId) ? (
+                            <ChevronUpCircle className="h-5 w-5" />
+                          ) : (
+                            <ChevronDownCircle className="h-5 w-5" />
+                          )}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    {expandedChains.includes(chainPosition.chainId) && (
+                      <TableRow>
+                        <TableCell colSpan={4}>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Wallet</TableHead>
+                                <TableHead>Borrow Amount</TableHead>
+                                <TableHead>Select</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {chainPosition.wallets.map((wallet) => (
+                                <TableRow key={wallet.address}>
+                                  <TableCell>{wallet.address}</TableCell>
+                                  <TableCell>
+                                    {formatEther(BigInt(wallet.amount))} ETH
+                                  </TableCell>
+                                  <TableCell>
+                                    <Checkbox
+                                      checked={selectedWallets[
+                                        chainPosition.chainId
+                                      ]?.includes(wallet.address)}
+                                      onCheckedChange={() =>
+                                        handleWalletSelection(
+                                          chainPosition.chainId,
+                                          wallet.address
+                                        )
+                                      }
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </Box>
       </Flex>
     </div>
-    // </div>
   );
 };
 
-export default DepositTabComp;
+export default RepayTab;

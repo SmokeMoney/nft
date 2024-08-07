@@ -41,10 +41,15 @@ import { NFT } from "@/CrossChainLendingApp";
 import depositRawAbi from "../abi/AdminDepositContract.abi.json";
 import erc20Abi from "../abi/ERC20.abi.json"; // Make sure you have this ABI
 import { Flex } from "@chakra-ui/react";
+import axios from "axios";
+import { berachainTestnetbArtio } from "viem/chains";
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL!;
 const DepositTabComp: React.FC<{
   selectedNFT: NFT;
-}> = ({ selectedNFT }) => {
+  updateDataCounter: number;
+  setUpdateDataCounter: any;
+}> = ({ selectedNFT, updateDataCounter, setUpdateDataCounter }) => {
   const [depositAmount, setDepositAmount] = useState("");
   const [selectedToken, setSelectedToken] = useState("wstETH");
   const [selectedChain, setSelectedChain] = useState("");
@@ -77,7 +82,6 @@ const DepositTabComp: React.FC<{
 
   useEffect(() => {
     if (allowance !== undefined && depositAmount) {
-      console.log(allowance);
       try {
         const parsedAmount = parseEther(depositAmount);
         setIsApproved(allowance >= parsedAmount);
@@ -99,6 +103,14 @@ const DepositTabComp: React.FC<{
       functionName: "approve",
       args: [getDepositAddress(getLZId(chainId)), parseEther(depositAmount)], // spender, amount
     });
+  };
+
+  const updateDeposit = async (nftId: string) => {
+    const response = await axios.post(`${backendUrl}/api/updatedeposit`, {
+      nftId: nftId,
+      chainId: getLZId(chainId).toString(),
+    });
+    return response.data.status === "update_successful";
   };
 
   const handleDeposit = async (e: any) => {
@@ -131,6 +143,18 @@ const DepositTabComp: React.FC<{
     }
   };
 
+  useEffect(() => {
+    const updateBackend = async () => {
+      if (isConfirmed) {
+        const updateStatus = await updateDeposit(selectedNFT.id);
+        if (updateStatus) {
+          setUpdateDataCounter(updateDataCounter + 1);
+        }
+      }
+    };
+    updateBackend();
+  }, [isConfirmed, isConfirming]);
+
   return (
     <div className="tab-content">
       {/* <div style={{ display: "flex", gap: "20px" }}> */}
@@ -139,7 +163,7 @@ const DepositTabComp: React.FC<{
           <CardHeader>
             <CardTitle>Deposit</CardTitle>
             <CardDescription className="fontSizeLarge">
-              Deposit ETH or wstETH
+              Deposit {chainId === berachainTestnetbArtio.id ? "BERA" : "ETH"} or wstETH
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -155,7 +179,7 @@ const DepositTabComp: React.FC<{
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="ETH" id="option-two" />
-                    <Label htmlFor="option-two">ETH</Label>
+                    <Label htmlFor="option-two">{chainId === berachainTestnetbArtio.id ? "BERA" : "ETH"}</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -215,7 +239,7 @@ const DepositTabComp: React.FC<{
             <TableHeader>
               <TableRow>
                 <TableHead>Chain</TableHead>
-                <TableHead>WETH Deposits</TableHead>
+                <TableHead>ETH Deposits</TableHead>
                 <TableHead>wstETH Deposits</TableHead>
               </TableRow>
             </TableHeader>
@@ -237,7 +261,8 @@ const DepositTabComp: React.FC<{
                   >
                     <TableCell>{getChainName(Number(chainId))}</TableCell>
                     <TableCell>
-                      {formatEther(BigInt(wethDeposit))} WETH
+                      {formatEther(BigInt(wethDeposit))}{" "}
+                      {chainId === "40291" ? "BERA" : "ETH"}
                     </TableCell>
                     <TableCell>
                       {formatEther(BigInt(wstEthDeposit))} wstETH
