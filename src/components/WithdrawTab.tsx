@@ -1,36 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { Address } from "viem";
+import { Box, Button, Flex, Text, VStack } from "@chakra-ui/react";
+
+import { Input } from "@/components/ui/input";
 import {
-  Box,
-  Button,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-  Flex,
-  Input,
+} from "@/components/ui/card";
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+} from "@/components/ui/table";
+
 import HandleBorrow from "./HandleBorrow";
-import { getChainName, getLZId } from "../utils/chainMapping";
-import { chains } from "../utils/chainMapping";
+import { getChainName, getLZId, chains } from "../utils/chainMapping";
 import { NFT, PositionData } from "../CrossChainLendingApp";
 
 interface WithdrawTabProps {
   selectedNFT: NFT | undefined;
   address: Address | undefined;
   ethBalance: string;
+  supportedChain: boolean;
   updateDataCounter: number;
   setUpdateDataCounter: React.Dispatch<React.SetStateAction<number>>;
   totalWethDeposits: bigint;
@@ -42,39 +42,78 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
   selectedNFT,
   address,
   ethBalance,
+  supportedChain,
   updateDataCounter,
   setUpdateDataCounter,
   totalWethDeposits,
   totalWstEthDeposits,
   wstETHRatio,
 }) => {
-  const [withdrawAmount, setWithdrawAmount] = useState<string>("");
-  const [walletBorrowPositions, setWalletBorrowPositions] = useState<PositionData[]>([]);
+  const [withdrawAmount, setWithdrawAmount] = useState<string>("0.001");
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const [selectChain, setSelectedChain] = useState<string>(getLZId(chainId).toString() ?? "1");
-  const [supportedChain, setSupportedChain] = useState<boolean>(false);
+  const [selectChain, setSelectedChain] = useState<string>(
+    getLZId(chainId).toString() ?? "1"
+  );
 
-  useEffect(() => {
-    setWalletBorrowPositions(
+  const walletBorrowPositions = useMemo(
+    () =>
       selectedNFT?.borrowPositions?.find(
         (position) => position.walletAddress === address
-      )?.borrowPositions ?? []
-    );
-  }, [selectedNFT, address]);
+      )?.borrowPositions ?? [],
+    [selectedNFT, address]
+  );
 
-  useEffect(() => {
-    if (chainId) {
-      const legacyId = getLZId(chainId);
-      setSupportedChain(!!legacyId && chains.some(chain => chain.legacyId === legacyId));
-    } else {
-      setSupportedChain(false);
-    }
-  }, [chainId]);
+  const totalDeposits = useMemo(
+    () =>
+      totalWethDeposits +
+      (totalWstEthDeposits * BigInt(wstETHRatio)) / parseEther("1"),
+    [totalWethDeposits, totalWstEthDeposits, wstETHRatio]
+  );
 
-  const switchToChain = async (newChainId: number) => {
+  const availableToBorrow = useMemo(
+    () =>
+      (totalDeposits * BigInt(90)) / BigInt(100) + BigInt(selectedNFT?.extraLimit?? '0') -
+      BigInt(selectedNFT?.totalBorrowPosition ?? 0),
+    [totalDeposits, selectedNFT]
+  );
+
+  const switchToChain = async (newChainId: any) => {
     switchChain({ chainId: newChainId });
   };
+
+  const calculateAvailable = (chainId: string, limit: string) => {
+    const chainBorrowAmount = BigInt(
+      walletBorrowPositions.find((position) => position.chainId === chainId)
+        ?.amount ?? "0"
+    );
+    const chainLimit = BigInt(limit);
+    const chainAvailable = chainLimit - chainBorrowAmount;
+    const minLimits =
+      chainAvailable > availableToBorrow ? availableToBorrow : chainAvailable;
+    return BigInt(minLimits);
+  };
+
+  const renderChainRows = () =>
+    Object.entries(selectedNFT?.chainLimits ?? {}).map(([chainId2, limit]) => {
+      const available = calculateAvailable(chainId2, limit);
+      return (
+        <TableRow
+          key={chainId2}
+          className={selectChain === chainId2 ? "SelectedBorRow" : ""}
+          onClick={() => setSelectedChain(chainId2)}
+        >
+          <TableCell>{selectChain === chainId2 ? "< " : ""}{getChainName(Number(chainId2))}</TableCell>
+          <TableCell>
+            {Number(formatEther(available)).toPrecision(4)} {chainId2 === "40291" ? "BERA" : "ETH"}
+          </TableCell>
+          <TableCell>5%</TableCell>
+          <TableCell>
+            {chainId2 === getLZId(chainId).toString() ? ethBalance : "-"}
+          </TableCell>
+        </TableRow>
+      );
+    });
 
   return (
     <div className="tab-content">
@@ -121,7 +160,7 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
                     </CardFooter>
                   </Card>
                 </Box>
-                <Box flex={2}>
+                <Box flex={1.5}>
                   <Card>
                     <Table className="fontSizeLarge">
                       <TableHeader>
@@ -132,83 +171,7 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
                           <TableHead>Balance</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
-                        {Object.entries(selectedNFT.chainLimits).map(
-                          ([chainId2, limit]) => (
-                            <TableRow
-                              key={chainId2}
-                              className={
-                                selectChain === chainId2
-                                  ? "SelectedBorRow"
-                                  : ""
-                              }
-                              onClick={() => setSelectedChain(chainId2)}
-                            >
-                              <TableCell>
-                                {getChainName(Number(chainId2))}
-                              </TableCell>
-                              <TableCell>
-                                {Number(
-                                  formatEther(
-                                    ((totalWethDeposits +
-                                      (totalWstEthDeposits *
-                                        BigInt(wstETHRatio)) /
-                                        parseEther("1")) *
-                                      BigInt(90)) /
-                                      BigInt(100) -
-                                      BigInt(
-                                        selectedNFT?.totalBorrowPosition ?? 0
-                                      )
-                                  )
-                                ) >
-                                Number(
-                                  formatEther(
-                                    BigInt(limit) -
-                                      BigInt(
-                                        walletBorrowPositions.find(
-                                          (position) =>
-                                            position.chainId === chainId2
-                                        )?.amount ?? "0"
-                                      )
-                                  )
-                                )
-                                  ? Number(
-                                      formatEther(
-                                        BigInt(limit) -
-                                          BigInt(
-                                            walletBorrowPositions.find(
-                                              (position) =>
-                                                position.chainId === chainId2
-                                            )?.amount ?? "0"
-                                          )
-                                      )
-                                    ).toPrecision(5)
-                                  : Number(
-                                      formatEther(
-                                        ((totalWethDeposits +
-                                          (totalWstEthDeposits *
-                                            BigInt(wstETHRatio)) /
-                                            parseEther("1")) *
-                                          BigInt(90)) /
-                                          BigInt(100) -
-                                          BigInt(
-                                            selectedNFT?.totalBorrowPosition ??
-                                              0
-                                          )
-                                      )
-                                    ).toPrecision(5)}{" "}
-                                {chainId2 === "40291" ? "BERA" : "ETH"}
-                              </TableCell>
-                              <TableCell>5%</TableCell>
-                              <TableCell>
-                                {chainId2 === getLZId(chainId).toString()
-                                  ? ethBalance
-                                  : "-"}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        )}
-                      </TableBody>
+                      <TableBody>{renderChainRows()}</TableBody>
                     </Table>
                   </Card>
                 </Box>

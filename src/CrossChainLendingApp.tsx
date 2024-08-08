@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import type { FormEvent } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
   useAccount,
@@ -13,37 +12,26 @@ import {
 } from "wagmi";
 import { getBalance } from "@wagmi/core";
 import { formatEther, formatUnits, parseEther } from "viem";
-import { arbitrumSepolia, berachainTestnetbArtio } from "wagmi/chains";
+import { arbitrumSepolia } from "wagmi/chains";
 import { Address } from "viem";
-import { AlignCenter, ChevronDownCircle, ChevronUpCircle } from "lucide-react";
+import { ChevronDownCircle, ChevronUpCircle } from "lucide-react";
 import axios from "axios";
+import {
+  PriceFeed,
+  PriceServiceConnection,
+} from "@pythnetwork/price-service-client";
+
+import DepositTabComp from "@/components/DepositTab"; // Adjust the import path as necessary
+import RepayTab from "@/components/RepayTab"; // Add this import
+import WithdrawTab from "./components/WithdrawTab"; // Add this import
+import NFTSelector from "./components/NFTSelector"; // Add this import
+
+import logo from "../public/logo4.png";
+import * as Popover from "@radix-ui/react-popover";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import DepositTabComp from "@/components/DepositTab"; // Adjust the import path as necessary
-import RepayTab from "@/components/RepayTab"; // Add this import
-import logo from "../public/logo4.png";
-import * as Popover from "@radix-ui/react-popover";
 
 import {
   Table,
@@ -54,31 +42,29 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
 
 import "./CrossChainLendingApp.css";
 import parseDumbAbis from "./abi/parsedCoreNFTAbi";
 import coreNFTRawAbi from "./abi/CoreNFTContract.abi.json";
-import {
-  chainIds,
-  chains,
-  getChainName,
-  getLegacyId,
-  getLZId,
-} from "./utils/chainMapping";
-import HandleBorrow from "./components/HandleBorrow";
+import { chainIds, chains, getChainName, getLZId } from "./utils/chainMapping";
 
-import { Box, Flex, VStack, HStack, Text } from "@chakra-ui/react";
+import { Box, Flex, VStack, HStack } from "@chakra-ui/react";
 import { ModeToggle } from "./components/mode-toggle";
 import { config } from "./wagmi";
+import OverviewStrip from "./components/OverviewStrip";
+import MintNFTComp from "./components/MintNFTComp";
+import AddWalletComp from "./components/AddWalletComp";
+import { Card } from "./components/ui/card";
+import FAQContent from "./components/custom/FAQ";
 
-const NFT_CONTRACT_ADDRESS =
+export const NFT_CONTRACT_ADDRESS =
   "0x9C2e3e224F0f5BFaB7B3C454F0b4357d424EF030" as Address;
-const backendUrl = import.meta.env.VITE_BACKEND_URL!;
+
+const priceFeedIdETH =
+  "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace"; // ETH/USD
+const priceFeedIdwstETH =
+  "0x6df640f3b8963d8f8358f791f352b8364513f6ab1cca5ed3f1f7b5448980e784"; // wstETH/USD
+export const backendUrl = import.meta.env.VITE_BACKEND_URL!;
 const coreNFTAbi = parseDumbAbis(coreNFTRawAbi);
 
 interface WalletConfig {
@@ -140,15 +126,13 @@ const CrossChainLendingApp: React.FC = () => {
       const legacyId = getLZId(chainId);
       if (legacyId && chainIds.some((chain) => chain === legacyId)) {
         setSupportedChain(true);
-      }
-      else {
+      } else {
         setSupportedChain(false);
       }
-    }
-    else {
+    } else {
       setSupportedChain(false);
     }
-  }, [chainId, chains ]);
+  }, [chainId, chains]);
 
   const balance = balanceData ? Number(balanceData) : 0;
 
@@ -174,18 +158,18 @@ const CrossChainLendingApp: React.FC = () => {
     })),
   });
 
-  useEffect(() => {
-    if (nftData && chainId === arbitrumSepolia.id) {
-      const nfts: NFT[] = nftData
-        .map((item) => item.result)
-        .filter((tokenId): tokenId is bigint => tokenId !== undefined)
-        .map((tokenId) => blankNFT(tokenId));
-      setListNFTs((prevNFTs) => mergeAndDeduplicateNFTs(prevNFTs, nfts));
-      if (nfts.length > 0 && !selectedNFT) {
-        setSelectedNFT(nfts[0]);
-      }
-    }
-  }, [nftData]);
+  // useEffect(() => {
+  //   if (nftData && chainId === arbitrumSepolia.id) {
+  //     const nfts: NFT[] = nftData
+  //       .map((item) => item.result)
+  //       .filter((tokenId): tokenId is bigint => tokenId !== undefined)
+  //       .map((tokenId) => blankNFT(tokenId));
+  //     setListNFTs((prevNFTs) => mergeAndDeduplicateNFTs(prevNFTs, nfts));
+  //     if (nfts.length > 0 && !selectedNFT) {
+  //       setSelectedNFT(nfts[0]);
+  //     }
+  //   }
+  // }, [nftData]);
 
   const { data: fetchedChainList } = useReadContract({
     address: NFT_CONTRACT_ADDRESS,
@@ -220,16 +204,6 @@ const CrossChainLendingApp: React.FC = () => {
         }
       }
       console.error("Error fetching wallet data:", error);
-      return [];
-    }
-  };
-
-  const fetchOracleData = async () => {
-    try {
-      const response = await axios.get(`${backendUrl}/api/oracle-data`);
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching NFTs:", error);
       return [];
     }
   };
@@ -304,18 +278,63 @@ const CrossChainLendingApp: React.FC = () => {
     return JSON.stringify(nft1) !== JSON.stringify(nft2);
   }
 
+  const fetchOracleData = async (): Promise<{
+    eth: string;
+    wsteth: string;
+  }> => {
+    let newETHPrice = "0";
+    let newWstETHPrice = "0";
+    try {
+      const priceFeedIds = [priceFeedIdETH, priceFeedIdwstETH];
+      const connection = new PriceServiceConnection(
+        "https://hermes.pyth.network"
+      );
+      const priceFeeds = await connection.getLatestPriceFeeds(priceFeedIds);
+
+      if (priceFeeds && priceFeeds.length > 0) {
+        priceFeeds.forEach((feed: PriceFeed, index: number) => {
+          const price = feed.getPriceUnchecked(); // Get price no older than 60 seconds
+          if (price) {
+            const priceString = (
+              Number(price.price) *
+              10 ** price.expo
+            ).toFixed(6);
+            if (index === 0) {
+              newETHPrice = priceString;
+            } else if (index === 1) {
+              newWstETHPrice = priceString;
+            }
+          }
+        });
+      } else {
+        console.warn("No price feeds re turned from Pyth Network");
+      }
+      return { eth: newETHPrice, wsteth: newWstETHPrice };
+    } catch (error) {
+      console.error("Error fetching prices:", error);
+      return { eth: newETHPrice, wsteth: newWstETHPrice };
+    }
+  };
+
   useEffect(() => {
-    const fetchNFTsAndBalance = async () => {
-      if (isConnected && address) {
-        const fetchedNFTs: NFT[] = await fetchWalletData(address);
-        const oracleData: { eth: string; wsteth: string } =
-          await fetchOracleData();
+    const updatePrices = async () => {
+      const oracleData: { eth: string; wsteth: string } =
+        await fetchOracleData();
+      if (Number(oracleData.eth) > 0) {
         setEthPrice(oracleData.eth);
         const wstETHRatio =
           (parseEther(oracleData.wsteth) * parseEther("1")) /
           parseEther(oracleData.eth);
         setWstethRatio(wstETHRatio.toString());
+      }
+    };
+    updatePrices();
+  }, [isConnected, address, selectedNFT, updateDataCounter]);
 
+  useEffect(() => {
+    const fetchNFTsAndBalance = async () => {
+      if (isConnected && address) {
+        const fetchedNFTs: NFT[] = await fetchWalletData(address);
         setListNFTs((prevNFTs) =>
           mergeAndDeduplicateNFTs(prevNFTs, fetchedNFTs)
         );
@@ -329,13 +348,17 @@ const CrossChainLendingApp: React.FC = () => {
         }
         if (
           selectedNFT &&
+          fetchedNFTs.length > 0 &&
           areNFTsDifferent(
             selectedNFT,
             fetchedNFTs.find((nft) => nft.id === selectedNFT.id) as NFT
           )
         ) {
+          console.log("Setting new selected NFT: ASFbsajidfb", fetchedNFTs);
           setSelectedNFT(fetchedNFTs.find((nft) => nft.id === selectedNFT.id));
         }
+      } else {
+        console.log("Conditions not met for setting NFT");
       }
       if (address) {
         const freshBalance = await getBalance(config, { address: address });
@@ -362,105 +385,6 @@ const CrossChainLendingApp: React.FC = () => {
 
   const switchToAdminChain = async () => {
     switchChain({ chainId: arbitrumSepolia.id });
-  };
-
-  const switchToChain = async (newChainId: any) => {
-    switchChain({ chainId: newChainId });
-  };
-
-  const NFTSelector: React.FC = () => {
-    if (listNFTs.length === 0) {
-      return <MintNFTButton />;
-    }
-    return (
-      <HStack gap={10}>
-        <Text className="fontSizeLarge">Your Smoke NFT:</Text>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="fontSizeLarge" variant={"secondary"}>
-              NFT ID: {selectedNFT?.id.toString()}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuLabel>Select NFT</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup
-              value={selectedNFT?.id.toString()}
-              onValueChange={(newValue) => {
-                const selectedNFTObject = listNFTs.find(
-                  (nft) => nft.id === newValue
-                );
-                if (selectedNFTObject) {
-                  setSelectedNFT(selectedNFTObject);
-                }
-              }}
-            >
-              {listNFTs.map((nft) => (
-                <DropdownMenuRadioItem key={nft.id} value={nft.id}>
-                  NFT ID: {nft.id} {nft.owner ? "(owner)" : ""}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </HStack>
-    );
-  };
-
-  const MintNFTButton: React.FC = () => {
-    const { data: hash, error, isPending, writeContract } = useWriteContract();
-
-    async function submit(e: FormEvent<HTMLFormElement>) {
-      e.preventDefault();
-      writeContract({
-        address: NFT_CONTRACT_ADDRESS,
-        abi: coreNFTAbi,
-        functionName: "mint",
-        args: [],
-        value: BigInt(parseEther("0.02")),
-      });
-    }
-
-    const { isLoading: isConfirming, isSuccess: isConfirmed } =
-      useWaitForTransactionReceipt({
-        hash,
-      });
-
-    return (
-      <div>
-        <Flex justify="center" align="stretch" w="full" px={4}>
-          <Flex
-            direction={{ base: "column", md: "row" }}
-            justify="center"
-            align="stretch"
-            gap={16}
-            w="full"
-            px={40}
-          >
-            <h2>Mint NFT</h2>
-            {chainId === arbitrumSepolia.id ? (
-              <form onSubmit={submit}>
-                <h3>Mint for: 0.02 ETH</h3>
-                You don't own a card yet.
-                <Button disabled={isPending} type="submit">
-                  {isPending ? "Confirming..." : "Mint"}
-                </Button>
-              </form>
-            ) : (
-              <Button onClick={switchToAdminChain}>Switch to Arbitrum</Button>
-            )}
-            {hash && <div>Transaction Hash: {hash}</div>}
-            {isConfirming && "Waiting for confirmation..."}
-            {isConfirmed && "Transaction confirmed."}
-            {error && (
-              <div>
-                Error: {(error as BaseError).shortMessage || error.message}
-              </div>
-            )}
-          </Flex>
-        </Flex>
-      </div>
-    );
   };
 
   const ManageTab: React.FC = () => {
@@ -896,203 +820,6 @@ const CrossChainLendingApp: React.FC = () => {
     );
   };
 
-  const WithdrawTab: React.FC = () => {
-    const [withdrawAmount, setWithdrawAmount] = useState<string>("");
-    const [walletBorrowPositions, setWalletBorrowPositions] = useState<
-      PositionData[]
-    >([]);
-    const [selectChain, setSelectedChain] = useState<string>(
-      getLZId(chainId).toString() ?? "1"
-    );
-    useEffect(() => {
-      setWalletBorrowPositions(
-        selectedNFT?.borrowPositions?.find(
-          (position) => position.walletAddress === address
-        )?.borrowPositions ?? []
-      );
-    }, [selectedNFT]);
-
-
-    return (
-      <div className="tab-content">
-        <VStack align="stretch" spacing={6}>
-          {selectedNFT && (
-            <div>
-              {supportedChain ? (
-                // <Flex justify="center" align="stretch" w="full" px={4}>
-                <Flex
-                  direction={{ base: "column", md: "row" }}
-                  justify="center"
-                  align="stretch"
-                  gap={16}
-                  padding={10}
-                  w="full"
-                  px={400}
-                >
-                  <Box flex={1} maxW={{ base: "full", md: "800px" }}>
-                    <Card className="fontSizeLarge">
-                      <CardHeader>
-                        <CardTitle>Withdraw</CardTitle>
-                        <CardDescription className="fontSizeLarge">
-                          Withdraw {selectChain === "40291" ? "BERA" : "ETH"} on{" "}
-                          {getChainName(Number(selectChain))}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Input
-                          className="fontSizeLarge"
-                          type="number"
-                          placeholder="Amount"
-                          value={withdrawAmount}
-                          onChange={(e) => setWithdrawAmount(e.target.value)}
-                        />
-                      </CardContent>
-                      <CardFooter>
-                        <HandleBorrow
-                          selectedNFT={selectedNFT}
-                          withdrawAmount={withdrawAmount}
-                          chainId={chainId}
-                          selectedChain={selectChain}
-                          updateDataCounter={updateDataCounter}
-                          setUpdateDataCounter={setUpdateDataCounter}
-                        />
-                      </CardFooter>
-                    </Card>
-                  </Box>
-                  <Box flex={2}>
-                    <Card>
-                      <Table className="fontSizeLarge">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Chain</TableHead>
-                            <TableHead>Available</TableHead>
-                            <TableHead>Interest</TableHead>
-                            <TableHead>Balance</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {Object.entries(selectedNFT.chainLimits).map(
-                            ([chainId2, limit]) => (
-                              <TableRow
-                                key={chainId2}
-                                className={
-                                  selectChain === chainId2
-                                    ? "SelectedBorRow"
-                                    : ""
-                                }
-                                onClick={() => setSelectedChain(chainId2)}
-                              >
-                                <TableCell>
-                                  {getChainName(Number(chainId2))}
-                                </TableCell>
-                                <TableCell>
-                                  {Number(
-                                    formatEther(
-                                      ((totalWethDeposits +
-                                        (totalWstEthDeposits *
-                                          BigInt(wstETHRatio)) /
-                                          parseEther("1")) *
-                                        BigInt(90)) /
-                                        BigInt(100) -
-                                        BigInt(
-                                          selectedNFT?.totalBorrowPosition ?? 0
-                                        )
-                                    )
-                                  ) >
-                                  Number(
-                                    formatEther(
-                                      BigInt(limit) -
-                                        BigInt(
-                                          walletBorrowPositions.find(
-                                            (position) =>
-                                              position.chainId === chainId2
-                                          )?.amount ?? "0"
-                                        )
-                                    )
-                                  )
-                                    ? Number(
-                                        formatEther(
-                                          BigInt(limit) -
-                                            BigInt(
-                                              walletBorrowPositions.find(
-                                                (position) =>
-                                                  position.chainId === chainId2
-                                              )?.amount ?? "0"
-                                            )
-                                        )
-                                      ).toPrecision(5)
-                                    : Number(
-                                        formatEther(
-                                          ((totalWethDeposits +
-                                            (totalWstEthDeposits *
-                                              BigInt(wstETHRatio)) /
-                                              parseEther("1")) *
-                                            BigInt(90)) /
-                                            BigInt(100) -
-                                            BigInt(
-                                              selectedNFT?.totalBorrowPosition ??
-                                                0
-                                            )
-                                        )
-                                      ).toPrecision(5)}{" "}
-                                  {chainId2 === "40291" ? "BERA" : "ETH"}
-                                </TableCell>
-                                <TableCell>5%</TableCell>
-                                <TableCell>
-                                  {chainId2 === getLZId(chainId).toString()
-                                    ? ethBalance
-                                    : "-"}
-                                </TableCell>
-                              </TableRow>
-                            )
-                          )}
-                        </TableBody>
-                      </Table>
-                    </Card>
-                  </Box>
-                </Flex>
-              ) : (
-                // </Flex>
-                <VStack>
-                  <Box flex={2}>
-                    <Card>
-                      <CardTitle>Chain not supported</CardTitle>
-                      <CardHeader>Supported Chains</CardHeader>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Chain</TableHead>
-                            <TableHead>Switch</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {Object.entries(chains).map(([index, chain]) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <Text>{chain.name}</Text>
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  onClick={() => switchToChain(chain.legacyId)}
-                                >
-                                  Switch Chain
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </Card>
-                  </Box>
-                </VStack>
-              )}
-            </div>
-          )}
-        </VStack>
-      </div>
-    );
-  };
-
   const DepositTab: React.FC = () => {
     return (
       <DepositTabComp
@@ -1116,6 +843,7 @@ const CrossChainLendingApp: React.FC = () => {
       0
     ) ?? 0
   );
+
   return (
     <div className="app-container">
       <div className="main-content">
@@ -1128,189 +856,130 @@ const CrossChainLendingApp: React.FC = () => {
           <HStack spacing={6}>
             {" "}
             <img src={logo} alt="Logo" className="app-logo" />
+            {listNFTs.length > 0 ? (
+              <>
+                <Popover.Root>
+                  <Popover.Trigger asChild>
+                    <Button>FAQ?</Button>
+                  </Popover.Trigger>
+                  <Popover.Content className="bg-primary bg-primary-foreground">
+                    <Card style={{ maxWidth: "400px" }}>
+                      <FAQContent />
+                    </Card>{" "}
+                  </Popover.Content>
+                </Popover.Root>
+              </>
+            ) : (
+              ""
+            )}
           </HStack>
-          {<NFTSelector />}
+          <NFTSelector
+            listNFTs={listNFTs}
+            selectedNFT={selectedNFT}
+            setSelectedNFT={setSelectedNFT}
+          />
           <HStack spacing={6}>
             <ConnectButton />
             <ModeToggle />
           </HStack>
         </Flex>
-
-        <Flex justify="center" align="stretch" w="full" px={4}>
-          <Flex
-            direction={{ base: "column", md: "row" }}
-            justify="center"
-            align="stretch"
-            gap={16}
-            padding={10}
-            w="full"
-            px={400}
-          >
-            <HStack spacing={10}>
-              <Button
-                className="fontSizeLarge"
-                onClick={() => setActiveTab("manage")}
-                variant={activeTab === "manage" ? "secondary" : "default"}
-              >
-                Manage
-              </Button>
-              <Button
-                className="fontSizeLarge"
-                onClick={() => setActiveTab("withdraw")}
-                variant={activeTab === "withdraw" ? "secondary" : "default"}
-              >
-                Smoke
-              </Button>
-              <Button
-                className="fontSizeLarge"
-                onClick={() => setActiveTab("deposit")}
-                variant={activeTab === "deposit" ? "secondary" : "default"}
-              >
-                Deposit
-              </Button>
-              <Button
-                className="fontSizeLarge"
-                onClick={() => setActiveTab("repay")}
-                variant={activeTab === "repay" ? "secondary" : "default"}
-              >
-                Repay
-              </Button>
-            </HStack>
-          </Flex>
-        </Flex>
-        <div className="fontSizeLarge">
-          <Flex justify="center" align="stretch" w="full" px={4}>
-            <Flex
-              direction={{ base: "column", md: "row" }}
-              justify="center"
-              align="stretch"
-              gap={16}
-              w="full"
-              px={40}
-            >
-              {/* <Separator className="my-4" /> */}
-
-              <HStack justify="stretch">
-                <Separator orientation="vertical" />
-                <Text>
-                  <HoverCard>
-                    <HoverCardTrigger>
-                      Total Deposits:{" "}
-                      {ethOrUSD
-                        ? Number(
-                            formatEther(
-                              (parseEther(ethPrice) *
-                                (totalWethDeposits +
-                                  (totalWstEthDeposits * BigInt(wstETHRatio)) /
-                                    parseEther("1"))) /
-                                parseEther("1")
-                            )
-                          ).toPrecision(6)
-                        : Number(
-                            formatEther(
-                              totalWethDeposits +
-                                (totalWstEthDeposits * BigInt(wstETHRatio)) /
-                                  parseEther("1")
-                            )
-                          ).toPrecision(5)}
-                      {ethOrUSD ? " USD" : " ETH"}
-                    </HoverCardTrigger>
-                    <HoverCardContent>
-                      <Text>
-                        ETH Deposits:{" "}
-                        {formatEther(
-                          BigInt(
-                            selectedNFT?.wethDeposits?.reduce(
-                              (sum, deposit) =>
-                                sum + parseFloat(deposit.amount),
-                              0
-                            ) ?? 0
-                          )
-                        )}{" "}
-                        ETH
-                      </Text>
-                      <Text>
-                        wstETH Deposits:{" "}
-                        {formatEther(
-                          BigInt(
-                            selectedNFT?.wstEthDeposits?.reduce(
-                              (sum, deposit) =>
-                                sum + parseFloat(deposit.amount),
-                              0
-                            ) ?? 0
-                          )
-                        )}{" "}
-                        wstETH
-                      </Text>
-                    </HoverCardContent>
-                  </HoverCard>
-                </Text>
-                <Separator orientation="vertical" />
-                <Text>
-                  Total Borrowed:{" "}
-                  {ethOrUSD
-                    ? Number(
-                        formatEther(
-                          (parseEther(ethPrice) *
-                            BigInt(selectedNFT?.totalBorrowPosition ?? 0)) /
-                            parseEther("1")
-                        )
-                      ).toPrecision(5)
-                    : Number(
-                        formatEther(
-                          BigInt(selectedNFT?.totalBorrowPosition ?? 0)
-                        )
-                      ).toPrecision(5)}
-                  {ethOrUSD ? " USD" : " ETH"}
-                </Text>
-                <Separator orientation="vertical" />
-                <Text as="b">
-                  Available to Borrow:{" "}
-                  {ethOrUSD
-                    ? (
-                        Number(
-                          formatEther(
-                            ((totalWethDeposits +
-                              (totalWstEthDeposits * BigInt(wstETHRatio)) /
-                                parseEther("1")) *
-                              BigInt(90)) /
-                              BigInt(100) -
-                              BigInt(selectedNFT?.totalBorrowPosition ?? 0)
-                          )
-                        ) * Number(ethPrice)
-                      ).toPrecision(5)
-                    : Number(
-                        formatEther(
-                          ((totalWethDeposits +
-                            (totalWstEthDeposits * BigInt(wstETHRatio)) /
-                              parseEther("1")) *
-                            BigInt(90)) /
-                            BigInt(100) -
-                            BigInt(selectedNFT?.totalBorrowPosition ?? 0)
-                        )
-                      ).toPrecision(5)}
-                  {ethOrUSD ? " USD" : " ETH"}
-                </Text>
-                <Separator orientation="vertical" />
-                <HStack>
-                  <Text>ETH</Text>
-                  <Switch
-                    checked={ethOrUSD}
-                    onCheckedChange={(e) => {
-                      setEthOrUSD(e);
-                    }}
-                  />
-                  <Text>USD</Text>
-                </HStack>
-              </HStack>
-              {/* <Separator className="my-4" /> */}
-            </Flex>
-          </Flex>
-        </div>
-        {activeTab === "manage" && <ManageTab />}
-        {activeTab === "withdraw" && <WithdrawTab />}
-        {activeTab === "deposit" && <DepositTab />}
-        {activeTab === "repay" && <RepayTab selectedNFT={selectedNFT} />}
+        {listNFTs.length > 0 ? (
+          selectedNFT &&
+          Object.values(selectedNFT.chainLimits).reduce(
+            (sum, limit) => sum + Number(limit),
+            0
+          ) === 0 &&
+          selectedNFT.owner ? (
+            <>
+              <AddWalletComp
+                nftId={selectedNFT.id}
+                chainList={chainList2}
+                updateDataCounter={updateDataCounter}
+                setUpdateDataCounter={setUpdateDataCounter}
+              />
+            </>
+          ) : (
+            <>
+              <Flex justify="center" align="stretch" w="full" px={4}>
+                <Flex
+                  direction={{ base: "column", md: "row" }}
+                  justify="center"
+                  align="stretch"
+                  gap={16}
+                  padding={10}
+                  w="full"
+                  px={400}
+                >
+                  <HStack spacing={10}>
+                    <Button
+                      className="fontSizeLarge"
+                      onClick={() => setActiveTab("manage")}
+                      variant={activeTab === "manage" ? "secondary" : "default"}
+                    >
+                      Manage
+                    </Button>
+                    <Button
+                      className="fontSizeLarge"
+                      onClick={() => setActiveTab("withdraw")}
+                      variant={
+                        activeTab === "withdraw" ? "secondary" : "default"
+                      }
+                    >
+                      Smoke
+                    </Button>
+                    <Button
+                      className="fontSizeLarge"
+                      onClick={() => setActiveTab("deposit")}
+                      variant={
+                        activeTab === "deposit" ? "secondary" : "default"
+                      }
+                    >
+                      Deposit
+                    </Button>
+                    <Button
+                      className="fontSizeLarge"
+                      onClick={() => setActiveTab("repay")}
+                      variant={activeTab === "repay" ? "secondary" : "default"}
+                    >
+                      Repay
+                    </Button>
+                  </HStack>
+                </Flex>
+              </Flex>
+              <OverviewStrip
+                ethOrUSD={ethOrUSD}
+                setEthOrUSD={setEthOrUSD}
+                ethPrice={ethPrice}
+                totalWethDeposits={totalWethDeposits}
+                totalWstEthDeposits={totalWstEthDeposits}
+                wstETHRatio={wstETHRatio}
+                selectedNFT={selectedNFT}
+              />
+              {activeTab === "manage" && <ManageTab />}
+              {activeTab === "withdraw" && (
+                <WithdrawTab
+                  selectedNFT={selectedNFT}
+                  address={address}
+                  ethBalance={ethBalance}
+                  supportedChain={supportedChain}
+                  updateDataCounter={updateDataCounter}
+                  setUpdateDataCounter={setUpdateDataCounter}
+                  totalWethDeposits={totalWethDeposits}
+                  totalWstEthDeposits={totalWstEthDeposits}
+                  wstETHRatio={wstETHRatio}
+                />
+              )}
+              {activeTab === "deposit" && <DepositTab />}
+              {activeTab === "repay" && <RepayTab selectedNFT={selectedNFT} />}
+            </>
+          )
+        ) : (
+          <MintNFTComp
+            ethBalance={ethBalance}
+            updateDataCounter={updateDataCounter}
+            setUpdateDataCounter={setUpdateDataCounter}
+          />
+        )}
       </div>
     </div>
   );

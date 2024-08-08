@@ -37,14 +37,13 @@ import {
   getLZId,
   getWstETHAddress,
 } from "../utils/chainMapping";
-import { NFT } from "@/CrossChainLendingApp";
+import { NFT, backendUrl } from "@/CrossChainLendingApp";
 import depositRawAbi from "../abi/AdminDepositContract.abi.json";
 import erc20Abi from "../abi/ERC20.abi.json"; // Make sure you have this ABI
 import { Flex } from "@chakra-ui/react";
 import axios from "axios";
 import { berachainTestnetbArtio } from "viem/chains";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL!;
 const DepositTabComp: React.FC<{
   selectedNFT: NFT;
   updateDataCounter: number;
@@ -234,7 +233,7 @@ const DepositTabComp: React.FC<{
           {isConfirmed && <div>Transaction confirmed!</div>}
         </Card>
 
-        <Card style={{ flex: 2 }}>
+        <Card style={{ flex: 1.5   }}>
           <Table className="fontSizeLarge">
             <TableHeader>
               <TableRow>
@@ -259,7 +258,7 @@ const DepositTabComp: React.FC<{
                     }
                     onClick={() => setSelectedChain(chainId)}
                   >
-                    <TableCell>{getChainName(Number(chainId))}</TableCell>
+                    <TableCell>{selectedChain === chainId ? "< " : ""}{getChainName(Number(chainId))}</TableCell>
                     <TableCell>
                       {formatEther(BigInt(wethDeposit))}{" "}
                       {chainId === "40291" ? "BERA" : "ETH"}

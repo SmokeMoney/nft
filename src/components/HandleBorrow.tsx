@@ -31,9 +31,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "./ui/toast";
 import "../CrossChainLendingApp.css";
 import { VStack, Text, HStack, Flex } from "@chakra-ui/react";
-import CrossChainLendingApp, { NFT } from "@/CrossChainLendingApp";
+import { NFT, backendUrl } from "@/CrossChainLendingApp";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL!;
 
 const HandleBorrow: React.FC<{
   selectedNFT: NFT | undefined;
@@ -291,7 +290,6 @@ const HandleBorrow: React.FC<{
 
   useEffect(() => {
     if (isConfirmed) {
-      console.log("confirmed");
       setRecentBorrowAmount(withdrawAmount);
     }
     if (error) {
@@ -324,7 +322,7 @@ const HandleBorrow: React.FC<{
                 ? "Waiting..."
                 : isConfirming
                 ? "Confirming..."
-                : "Borrow"}
+                : "Withdraw"}
             </Button>
           </form>
         ) : (

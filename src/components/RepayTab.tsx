@@ -288,7 +288,7 @@ const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
             </CardFooter>
           </Card>
         </Box>
-        <Box flex={2}>
+        <Box flex={1.5}>
           <Card>
             <Table className="fontSizeLarge">
               <TableHeader>
