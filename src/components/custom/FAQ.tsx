@@ -23,7 +23,7 @@ const FAQContent: React.FC<{}> = ({}) => {
       </CardHeader>
       <CardContent>
         Smoke is a credit card protocol that helps you spend your money on any
-        chain out there. Instantly. Faster than Visa.{" "}
+        chain out there. It's an alternative to traditional bridging.{" "}
         <Accordion type="multiple">
           <AccordionItem value="item-1">
             <AccordionTrigger>Why am I minting an NFT?</AccordionTrigger>

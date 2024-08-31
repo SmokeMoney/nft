@@ -30,7 +30,7 @@ const NFTSelector: React.FC<NFTSelectorProps> = ({
       <Text className="fontSizeLarge">Your Smoke NFT:</Text>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="fontSizeLarge" variant={"secondary"}>
+          <Button className="fontSizeLarge" variant={"default"}>
             NFT ID: {selectedNFT?.id.toString()}
           </Button>
         </DropdownMenuTrigger>

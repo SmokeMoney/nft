@@ -35,10 +35,11 @@ import {
   getDepositAddress,
   getLegacyId,
   getLZId,
+  getNftAddress,
   getWstETHAddress,
 } from "../utils/chainMapping";
 import { NFT, backendUrl } from "@/CrossChainLendingApp";
-import depositRawAbi from "../abi/AdminDepositContract.abi.json";
+import depositRawAbi from "../abi/SmokeDepositContract.abi.json";
 import erc20Abi from "../abi/ERC20.abi.json"; // Make sure you have this ABI
 import { Flex } from "@chakra-ui/react";
 import axios from "axios";
@@ -123,7 +124,7 @@ const DepositTabComp: React.FC<{
         address: getDepositAddress(getLZId(chainId)),
         abi: depositRawAbi,
         functionName: "depositETH",
-        args: [BigInt(selectedNFT.id), amount],
+        args: [getNftAddress(), BigInt(selectedNFT.id), amount],
         value: amount,
       });
     } else {
@@ -134,6 +135,7 @@ const DepositTabComp: React.FC<{
         abi: depositRawAbi,
         functionName: "deposit",
         args: [
+          getNftAddress(),
           getWstETHAddress(Number(selectedChain)),
           BigInt(selectedNFT.id),
           amount,
@@ -162,7 +164,8 @@ const DepositTabComp: React.FC<{
           <CardHeader>
             <CardTitle>Deposit</CardTitle>
             <CardDescription className="fontSizeLarge">
-              Deposit {chainId === berachainTestnetbArtio.id ? "BERA" : "ETH"} or wstETH
+              Deposit {chainId === berachainTestnetbArtio.id ? "BERA" : "ETH"}{" "}
+              or wstETH
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -178,7 +181,9 @@ const DepositTabComp: React.FC<{
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="ETH" id="option-two" />
-                    <Label htmlFor="option-two">{chainId === berachainTestnetbArtio.id ? "BERA" : "ETH"}</Label>
+                    <Label htmlFor="option-two">
+                      {chainId === berachainTestnetbArtio.id ? "BERA" : "ETH"}
+                    </Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -233,7 +238,7 @@ const DepositTabComp: React.FC<{
           {isConfirmed && <div>Transaction confirmed!</div>}
         </Card>
 
-        <Card style={{ flex: 1.5   }}>
+        <Card style={{ flex: 1.5 }}>
           <Table className="fontSizeLarge">
             <TableHeader>
               <TableRow>
@@ -258,7 +263,10 @@ const DepositTabComp: React.FC<{
                     }
                     onClick={() => setSelectedChain(chainId)}
                   >
-                    <TableCell>{selectedChain === chainId ? "< " : ""}{getChainName(Number(chainId))}</TableCell>
+                    <TableCell>
+                      {selectedChain === chainId ? "< " : ""}
+                      {getChainName(Number(chainId))}
+                    </TableCell>
                     <TableCell>
                       {formatEther(BigInt(wethDeposit))}{" "}
                       {chainId === "40291" ? "BERA" : "ETH"}

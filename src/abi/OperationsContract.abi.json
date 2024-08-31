@@ -3,22 +3,12 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "_coreNFTContract",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
         "name": "_endpoint",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "_pythContract",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_issuer",
+        "name": "_assemblePositionsContract",
         "type": "address",
         "internalType": "address"
       },
@@ -37,45 +27,6 @@
   },
   {
     "type": "function",
-    "name": "ASSEMBLE_VALID_FOR",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "LIQ_THRESHOLD",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "LTV_RATIO",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "SIGNATURE_VALIDITY",
     "inputs": [],
     "outputs": [
@@ -86,6 +37,19 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "addIssuer",
+    "inputs": [
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -138,6 +102,19 @@
   },
   {
     "type": "function",
+    "name": "assemblePositionsContract",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IAssemblePositionsContract"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "challengeNonces",
     "inputs": [
       {
@@ -154,6 +131,24 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "changeIssuerAddress",
+    "inputs": [
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "newIssuerAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -186,72 +181,6 @@
   },
   {
     "type": "function",
-    "name": "coreNFTContract",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract ICoreNFTContract"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "createAssemblePositions",
-    "inputs": [
-      {
-        "name": "nftId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "forWithdrawal",
-        "type": "bool",
-        "internalType": "bool"
-      },
-      {
-        "name": "executor",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "priceUpdate",
-        "type": "bytes[]",
-        "internalType": "bytes[]"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "currentIncompleteWithdrawalAssembleIds",
-    "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "depositContracts",
     "inputs": [
       {
@@ -265,6 +194,49 @@
         "name": "",
         "type": "address",
         "internalType": "contract IDepositContract"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "eip712Domain",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "fields",
+        "type": "bytes1",
+        "internalType": "bytes1"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "version",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "salt",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "extensions",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -341,8 +313,8 @@
       },
       {
         "name": "token",
-        "type": "address",
-        "internalType": "address"
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "amounts",
@@ -355,37 +327,18 @@
         "internalType": "uint32[]"
       },
       {
+        "name": "recipientAddress",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
         "name": "_extraOptions",
         "type": "bytes",
         "internalType": "bytes"
-      },
-      {
-        "name": "recipientAddress",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "outputs": [],
     "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "getAssembleChainsReported",
-    "inputs": [
-      {
-        "name": "assembleId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -397,14 +350,19 @@
         "internalType": "uint256"
       },
       {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "nftId",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
         "name": "wallets",
-        "type": "address[]",
-        "internalType": "address[]"
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
       },
       {
         "name": "_extraOptions",
@@ -414,44 +372,6 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "getWithdrawNonce",
-    "inputs": [
-      {
-        "name": "nftId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "hasIncompleteWithdrawalAssemble",
-    "inputs": [
-      {
-        "name": "nftId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -501,8 +421,33 @@
   },
   {
     "type": "function",
-    "name": "issuer",
-    "inputs": [],
+    "name": "issuerContracts",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "issuers",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "outputs": [
       {
         "name": "",
@@ -523,8 +468,8 @@
       },
       {
         "name": "token",
-        "type": "address",
-        "internalType": "address"
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "targetChainId",
@@ -533,8 +478,13 @@
       },
       {
         "name": "recipientAddress",
-        "type": "address",
-        "internalType": "address"
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "gAssembleIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       },
       {
         "name": "_extraOptions",
@@ -594,19 +544,6 @@
     ],
     "outputs": [],
     "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "markAssembleComplete",
-    "inputs": [
-      {
-        "name": "assembleId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -684,13 +621,13 @@
   },
   {
     "type": "function",
-    "name": "pyth",
+    "name": "permissionless",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "address",
-        "internalType": "contract IPyth"
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -819,6 +756,11 @@
     "name": "setNewIssuer",
     "inputs": [
       {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "newIssuer",
         "type": "address",
         "internalType": "address"
@@ -847,6 +789,46 @@
   },
   {
     "type": "function",
+    "name": "setSecondaryWithdrawalAddress",
+    "inputs": [
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "nftId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "withdrawalAddress",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "targetChainId",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "_extraOptions",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "togglePermission",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "transferOwnership",
     "inputs": [
       {
@@ -863,34 +845,56 @@
     "name": "withdraw",
     "inputs": [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "nftId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "targetChainId",
-        "type": "uint32",
-        "internalType": "uint32"
-      },
-      {
-        "name": "timestamp",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "nonce",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct OperationsContract.WithdrawParams",
+        "components": [
+          {
+            "name": "issuerNFT",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "nftId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "targetChainId",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "primary",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "recipientAddress",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
       },
       {
         "name": "signature",
@@ -901,11 +905,6 @@
         "name": "_extraOptions",
         "type": "bytes",
         "internalType": "bytes"
-      },
-      {
-        "name": "recipientAddress",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -979,6 +978,12 @@
     "name": "CrossChainWithdrawalInitiated",
     "inputs": [
       {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
         "name": "nftId",
         "type": "uint256",
         "indexed": true,
@@ -986,9 +991,9 @@
       },
       {
         "name": "token",
-        "type": "address",
+        "type": "bytes32",
         "indexed": true,
-        "internalType": "address"
+        "internalType": "bytes32"
       },
       {
         "name": "amount",
@@ -1004,11 +1009,17 @@
       },
       {
         "name": "recipientAddress",
-        "type": "address",
+        "type": "bytes32",
         "indexed": false,
-        "internalType": "address"
+        "internalType": "bytes32"
       }
     ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EIP712DomainChanged",
+    "inputs": [],
     "anonymous": false
   },
   {
@@ -1053,9 +1064,9 @@
       },
       {
         "name": "token",
-        "type": "address",
+        "type": "bytes32",
         "indexed": true,
-        "internalType": "address"
+        "internalType": "bytes32"
       },
       {
         "name": "amount",
@@ -1071,6 +1082,25 @@
       },
       {
         "name": "recipientAddress",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "IssuerChanged",
+    "inputs": [
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "newIssuerAddress",
         "type": "address",
         "indexed": false,
         "internalType": "address"
@@ -1084,9 +1114,9 @@
     "inputs": [
       {
         "name": "token",
-        "type": "address",
+        "type": "bytes32",
         "indexed": true,
-        "internalType": "address"
+        "internalType": "bytes32"
       },
       {
         "name": "nftId",
@@ -1102,6 +1132,19 @@
       },
       {
         "name": "challenger",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NewIssuerAdded",
+    "inputs": [
+      {
+        "name": "issuerNFT",
         "type": "address",
         "indexed": false,
         "internalType": "address"
@@ -1149,8 +1192,45 @@
   },
   {
     "type": "event",
+    "name": "SecondaryWithdrawalAddressSet",
+    "inputs": [
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "nftId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "withdrawalAddress",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "targetChainId",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Withdrawn",
     "inputs": [
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
       {
         "name": "nftId",
         "type": "uint256",
@@ -1159,9 +1239,9 @@
       },
       {
         "name": "token",
-        "type": "address",
+        "type": "bytes32",
         "indexed": true,
-        "internalType": "address"
+        "internalType": "bytes32"
       },
       {
         "name": "amount",
@@ -1255,6 +1335,11 @@
   },
   {
     "type": "error",
+    "name": "InvalidShortString",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "LzTokenUnavailable",
     "inputs": []
   },
@@ -1337,6 +1422,17 @@
         "name": "token",
         "type": "address",
         "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "StringTooLong",
+    "inputs": [
+      {
+        "name": "str",
+        "type": "string",
+        "internalType": "string"
       }
     ]
   }

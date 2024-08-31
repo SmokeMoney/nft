@@ -9,7 +9,7 @@ import {
   useReadContract,
 } from "wagmi";
 import { Address, parseEther } from "viem";
-import { arbitrumSepolia } from "wagmi/chains";
+import { arbitrumSepolia, baseSepolia } from "wagmi/chains";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,13 +43,13 @@ import { Flex, HStack, Spinner, VStack } from "@chakra-ui/react";
 // You'll need to import your ABI here\
 import coreNFTRawAbi from "../abi/CoreNFTContract.abi.json";
 import parseDumbAbis from "../abi/parsedCoreNFTAbi";
-import { AlignJustify, Bold, ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 import { Separator } from "./ui/separator";
 import { backendUrl, NFT_CONTRACT_ADDRESS } from "@/CrossChainLendingApp";
 import axios from "axios";
 import { getChainExplorer, getLZId } from "@/utils/chainMapping";
-import FAQContent from "./custom/FAQ";
 const coreNFTAbi = parseDumbAbis(coreNFTRawAbi);
+import loadingGif from "/smoke.gif";
 
 const MintNFTComp: React.FC<{
   ethBalance: string;
@@ -69,7 +69,7 @@ const MintNFTComp: React.FC<{
     });
 
   const switchToAdminChain = async () => {
-    switchChain({ chainId: arbitrumSepolia.id });
+    switchChain({ chainId: baseSepolia.id });
   };
 
   async function handleMint(e: any) {
@@ -85,6 +85,7 @@ const MintNFTComp: React.FC<{
   }
   const getTestnetETH = async () => {
     try {
+      setFaucetHash("0xLoading");
       const response = await axios.post(`${backendUrl}/api/testnet-faucet`, {
         walletAddress: address,
       });
@@ -94,7 +95,7 @@ const MintNFTComp: React.FC<{
         setFaucetHash("0x");
       }
     } catch (error) {
-      console.error("Error fetching borrow signature:", error);
+      console.error("Error getting testnet ETH:", error);
       return null;
     }
   };
@@ -167,16 +168,24 @@ const MintNFTComp: React.FC<{
     }
   }, [error]);
 
+  const LoadingAnimation = () => (
+    <img
+      src={loadingGif}
+      alt="Loading..."
+      style={{ width: "90px", height: "9  0px" }}
+    />
+  );
+
   return (
     <div>
       <Flex justify="center" align="stretch" w="full" px={4}>
         <Flex justify="space-between" align="start" w="full" maxW="900px">
-          <VStack spacing={4} width="50%" align="stretch">
+          <VStack spacing={4} align="stretch">
             <Card>
               <CardHeader>
-                <CardTitle>Mint NFT</CardTitle>
+                <CardTitle>Create your account</CardTitle>
                 <CardDescription className="fontSizeLarge">
-                  Your NFT is your credit card
+                  Your NFT is your credit card account
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -185,20 +194,22 @@ const MintNFTComp: React.FC<{
                 <div></div>
                 <HoverCard>
                   <HoverCardTrigger>
-                    Extra Credit: 0.01 ETH (!)
+                    Native Credit: 0.01 ETH (!)
                   </HoverCardTrigger>
                   <HoverCardContent>
-                    This is the extra limit you get that you can spend.
+                    This is a built in native credit you get to spend on any
+                    chain.
                   </HoverCardContent>
                 </HoverCard>
               </CardContent>
               <CardFooter>
-                <VStack>
-                  <HStack>
-                    {arbitrumSepolia.id === chainId ? (
+                <Flex direction="column" width="100%">
+                  <Flex justify="space-between" wrap="wrap" gap={2}>
+                    {baseSepolia.id === chainId ? (
                       <Button
                         onClick={handleMint}
                         disabled={isPending || isConfirming}
+                        className="flex-grow"
                       >
                         {isPending
                           ? "Confirming..."
@@ -207,33 +218,44 @@ const MintNFTComp: React.FC<{
                           : "Mint"}
                       </Button>
                     ) : (
-                      <Button onClick={switchToAdminChain}>
-                        Switch to Arbitrum
+                      <Button
+                        onClick={switchToAdminChain}
+                        className="flex-grow"
+                      >
+                        Switch to Base
                       </Button>
                     )}
                     <Separator orientation="vertical" />
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline">
-                          Bridge to Arbitrum{" "}
-                          <ChevronDownIcon className="ml-2 h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem
-                          onClick={() => handleBridgeClick("ethereum")}
-                        >
-                          Bridge from Ethereum
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleBridgeClick("anywhere")}
-                        >
-                          Bridge from anywhere
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </HStack>
-                </VStack>
+                    {false ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="secondary"
+                            className="flex-grow"
+                            disabled
+                          >
+                            Bridge to Arbitrum{" "}
+                            <ChevronDownIcon className="ml-2 h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem
+                            onClick={() => handleBridgeClick("ethereum")}
+                          >
+                            Bridge from Ethereum
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleBridgeClick("anywhere")}
+                          >
+                            Bridge from anywhere
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      ""
+                    )}
+                  </Flex>
+                </Flex>
               </CardFooter>
 
               {error && (
@@ -242,20 +264,25 @@ const MintNFTComp: React.FC<{
                   {error.message.includes(
                     "The total cost (gas * gas fee + value) of executing this transaction exceeds the balance of the account"
                   )
-                    ? "Not enough balance to mint"
+                    ? "Not enough balance to mint. Get from the faucet below. "
                     : error.message}
                 </div>
               )}
               {isConfirmed && (
-                <div>
+                <Flex padding={20}>
+                  {/* <VStack> */}
+                  {/* <HStack> */}
                   Transaction confirmed! Indexing, pls wait...
                   <Spinner color="red.500" size="xl" />
-                </div>
+                  {/* </HStack> */}
+                  {/* </VStack> */}
+                  {/* <LoadingAnimation /> */}
+                </Flex>
               )}
             </Card>
             <Card style={{ flex: 1, padding: 12 }}>
               <CardHeader>
-                <CardTitle>Arbitrum Testnet Faucet</CardTitle>
+                <CardTitle>Base Testnet Faucet</CardTitle>
               </CardHeader>
               <CardContent>
                 <div color="grey">(Balance: {ethBalance ?? 0} ETH)</div>
@@ -263,12 +290,22 @@ const MintNFTComp: React.FC<{
               <CardFooter>
                 <Flex>
                   <VStack>
-                    <Button onClick={getTestnetETH}>Get 0.021 ETH</Button>
+                    <Button
+                      onClick={getTestnetETH}
+                      disabled={address ? false : true}
+                    >
+                      Get 0.021 ETH
+                    </Button>
                     <div>
                       {faucetHash == "0x" ? (
                         "Already Funded."
                       ) : faucetHash == "" ? (
                         ""
+                      ) : faucetHash == "0xLoading" ? (
+                        <Flex>
+                          <div>Funding...</div>
+                          <Spinner color="red.500" size="xl" />
+                        </Flex>
                       ) : (
                         <>
                           {"You've been"}{" "}
@@ -298,9 +335,9 @@ const MintNFTComp: React.FC<{
           </VStack>
 
           {/* <div className="w-full max-w-full overflow-hidden"> */}
-          <Card style={{ width: "49%" }}>
+          {/* <Card style={{ width: "49%" }}>
             <FAQContent />
-          </Card>
+          </Card> */}
           {/* </div> */}
         </Flex>
       </Flex>

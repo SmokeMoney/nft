@@ -57,17 +57,17 @@ export const chains: Chain[] = [
     wstethAddress: import.meta.env.VITE_BAS_WSTETH_ADDRESS!,
     explorer: "https://sepolia.basescan.org/",
   },
-  {
-    id: 40291,
-    legacyId: 80084,
-    name: "Berachain Bartio",
-    rpcUrl: import.meta.env.VITE_BASSEPOLIA_RPC_URL!,
-    lendingAddress: import.meta.env.VITE_BER_LENDING_ADDRESS!,
-    depositAddress: import.meta.env.VITE_BER_DEPOSIT_ADDRESS!,
-    wethAddress: import.meta.env.VITE_BER_WETH_ADDRESS!,
-    wstethAddress: import.meta.env.VITE_BER_WSTETH_ADDRESS!,
-    explorer: "https://bartio.beratrail.io/",
-  },
+  // {
+  //   id: 40291,
+  //   legacyId: 80084,
+  //   name: "Berachain Bartio",
+  //   rpcUrl: import.meta.env.VITE_BASSEPOLIA_RPC_URL!,
+  //   lendingAddress: import.meta.env.VITE_BER_LENDING_ADDRESS!,
+  //   depositAddress: import.meta.env.VITE_BER_DEPOSIT_ADDRESS!,
+  //   wethAddress: import.meta.env.VITE_BER_WETH_ADDRESS!,
+  //   wstethAddress: import.meta.env.VITE_BER_WSTETH_ADDRESS!,
+  //   explorer: "https://bartio.beratrail.io/",
+  // },
 ];
 
 // ... (keep the existing functions)
@@ -151,4 +151,12 @@ export function getChainExplorer(chainId: number): string {
 
 export function isValidChainId(chainId: number): boolean {
   return chains.some((chain) => chain.id === chainId);
+}
+
+export function getNftAddress(): string {
+  if (import.meta.env.VITE_NFT_CONTRACT_ADDRESS !== undefined) {
+    return import.meta.env.VITE_NFT_CONTRACT_ADDRESS;
+  } else {
+    throw Error("NFT Address not found");
+  }
 }

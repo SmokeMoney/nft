@@ -31,12 +31,15 @@ import {
   getChainName,
   getLegacyId,
   getLZId,
+  getNftAddress,
 } from "../utils/chainMapping";
-import lendingRawAbi from "../abi/CrossChainLendingContract.abi.json";
+import spendingRawAbi from "../abi/SmokeSpendingContract.abi.json";
 
-import { NFT } from "@/CrossChainLendingApp";
+import { NFT, backendUrl } from "@/CrossChainLendingApp";
 import { Button } from "./ui/button";
 import { ChevronDownCircle, ChevronUpCircle } from "lucide-react";
+import { bytes32ToAddress } from "@/utils/addressConversion";
+import axios from "axios";
 interface ChainBorrowPositions {
   chainId: string;
   totalAmount: string;
@@ -45,14 +48,17 @@ interface ChainBorrowPositions {
     amount: string;
   }[];
 }
-const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
-  selectedNFT,
-}) => {
-  const [repayAmount, setRepayAmount] = useState<string>("");
+const RepayTab: React.FC<{
+  selectedNFT: NFT | undefined;
+  updateDataCounter: number;
+  setUpdateDataCounter: any;
+}> = ({ selectedNFT, updateDataCounter, setUpdateDataCounter }) => {
+  const [repayAmount, setRepayAmount] = useState<string>("0.0000");
   const [selectedWallets, setSelectedWallets] = useState<{
     [chainId: string]: string[];
   }>({});
-  const [expandedChains, setExpandedChains] = useState<string[]>([]);
+  // const [expandedChains, setExpandedChains] = useState<string[]>([]);
+  const [expandedChain, setExpandedChain] = useState<string | null>(null);
   const [chainBorrowPositions, setChainBorrowPositions] = useState<
     ChainBorrowPositions[]
   >([]);
@@ -115,90 +121,93 @@ const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
         ?.wallets.find((w) => w.address === walletAddress);
       amounts.push(BigInt(position?.amount || "0"));
     });
-    console.log(amounts);
-    console.log(parseEther(repayAmount));
 
     if (nftIds.length === 1) {
       writeContract({
         address: getChainLendingAddress(getLZId(chainId)),
-        abi: lendingRawAbi,
+        abi: spendingRawAbi,
         functionName: "repay",
-        args: [nftIds[0], wallets[0], address],
+        args: [getNftAddress(), nftIds[0], wallets[0], address],
         value: parseEther(repayAmount),
       });
     } else {
       writeContract({
         address: getChainLendingAddress(getLZId(chainId)),
-        abi: lendingRawAbi,
+        abi: spendingRawAbi,
         functionName: "repayMultiple",
-        args: [nftIds, wallets, amounts, address],
+        args: [getNftAddress(), nftIds, wallets, amounts, address],
         value: parseEther(repayAmount),
       });
     }
   };
-
-  const handleWalletSelection = (chainId: string, walletAddress: string) => {
+  const handleWalletSelection = (
+    chainId: string,
+    walletAddressOriginal: string
+  ) => {
     setSelectedWallets((prev) => {
-      const updatedWallets = { ...prev };
+      const updatedWallets: { [chainId: string]: string[] } = {};
+      const walletAddress = bytes32ToAddress(
+        walletAddressOriginal as `0x${string}`
+      );
+
       if (chainId !== selectedChainId) {
         // Clear previous selections and set the new chain
         updatedWallets[chainId] = [walletAddress];
         setSelectedChainId(chainId);
       } else {
-        if (!updatedWallets[chainId]) {
-          updatedWallets[chainId] = [];
-        }
-        if (updatedWallets[chainId].includes(walletAddress)) {
-          updatedWallets[chainId] = updatedWallets[chainId].filter(
+        // Update selections for the current chain
+        const currentChainWallets = prev[chainId] || [];
+        if (currentChainWallets.includes(walletAddress)) {
+          updatedWallets[chainId] = currentChainWallets.filter(
             (addr) => addr !== walletAddress
           );
         } else {
-          updatedWallets[chainId].push(walletAddress);
+          updatedWallets[chainId] = [...currentChainWallets, walletAddress];
         }
+
+        // If no wallets are selected for this chain, set selectedChainId to null
         if (updatedWallets[chainId].length === 0) {
           setSelectedChainId(null);
         }
       }
+
       return updatedWallets;
     });
   };
 
   const handleChainSelection = (chainId: string) => {
     setSelectedWallets((prev) => {
-      const updatedWallets = { ...prev };
+      const updatedWallets: { [chainId: string]: string[] } = {};
       const chainPosition = chainBorrowPositions.find(
         (p) => p.chainId === chainId
       );
+
       if (chainPosition) {
-        if (chainId !== selectedChainId) {
-          // Clear previous selections and select all wallets for the new chain
-          updatedWallets[chainId] = chainPosition.wallets.map((w) => w.address);
+        if (
+          chainId !== selectedChainId ||
+          !prev[chainId] ||
+          prev[chainId].length !== chainPosition.wallets.length
+        ) {
+          // Select all wallets for the new chain
+          updatedWallets[chainId] = chainPosition.wallets.map((w) =>
+            bytes32ToAddress(w.address as `0x${string}`)
+          );
           setSelectedChainId(chainId);
-        } else {
-          if (
-            updatedWallets[chainId]?.length === chainPosition.wallets.length
-          ) {
-            // Deselect all wallets for this chain
-            delete updatedWallets[chainId];
-            setSelectedChainId(null);
-          } else {
-            // Select all wallets for this chain
-            updatedWallets[chainId] = chainPosition.wallets.map(
-              (w) => w.address
-            );
+          if (expandedChain && expandedChain !== chainId) {
+            toggleChainExpansion(expandedChain);
           }
+        } else {
+          // Deselect all wallets if all were previously selected
+          setSelectedChainId(null);
         }
       }
+
       return updatedWallets;
     });
   };
 
   const toggleChainExpansion = (chainId: string) => {
-    setExpandedChains((prev) =>
-      prev.includes(chainId)
-        ? prev.filter((id) => id !== chainId)
-        : [...prev, chainId]
-    );
+    setExpandedChain((prev) => (prev === chainId ? null : chainId));
   };
 
   useEffect(() => {
@@ -210,7 +219,8 @@ const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
       if (chainPosition) {
         selectedWallets[selectedChainId].forEach((walletAddress) => {
           const wallet = chainPosition.wallets.find(
-            (w) => w.address === walletAddress
+            (w) =>
+              bytes32ToAddress(w.address as `0x${string}`) === walletAddress
           );
           if (wallet) {
             totalRepayAmount += parseFloat(formatEther(BigInt(wallet.amount)));
@@ -218,8 +228,30 @@ const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
         });
       }
     }
-    setRepayAmount(totalRepayAmount.toFixed(18));
+    setRepayAmount(
+      totalRepayAmount == 0 ? "0.0" : totalRepayAmount.toFixed(18)
+    );
   }, [selectedWallets, chainBorrowPositions, selectedChainId]);
+
+  const updateBorrow = async (nftId: string) => {
+    const response = await axios.post(`${backendUrl}/api/updateborrow`, {
+      nftId: nftId,
+      chainId: getLZId(chainId).toString(),
+    });
+    return response.data.status === "update_successful";
+  };
+
+  useEffect(() => {
+    const updateBackend = async () => {
+      if (isConfirmed && selectedNFT) {
+        const updateStatus = await updateBorrow(selectedNFT.id);
+        if (updateStatus) {
+          setUpdateDataCounter(updateDataCounter + 1);
+        }
+      }
+    };
+    updateBackend();
+  }, [isConfirmed, isConfirming]);
 
   const switchToChain = async (newChainId: any) => {
     switchChain({ chainId: newChainId });
@@ -295,6 +327,7 @@ const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
                 <TableRow>
                   <TableHead>Chain</TableHead>
                   <TableHead>Total Borrow Amount</TableHead>
+                  <TableHead>Interest</TableHead>
                   <TableHead>Select All</TableHead>
                   <TableHead>Expand</TableHead>
                 </TableRow>
@@ -309,6 +342,7 @@ const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
                       <TableCell>
                         {formatEther(BigInt(chainPosition.totalAmount))} ETH
                       </TableCell>
+                      <TableCell>5%</TableCell>
                       <TableCell>
                         <Checkbox
                           checked={
@@ -318,24 +352,29 @@ const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
                           onCheckedChange={() =>
                             handleChainSelection(chainPosition.chainId)
                           }
+                          disabled={chainPosition.wallets.length == 0}
                         />
                       </TableCell>
-                      <TableCell>
-                        <Button
-                          size="icon"
-                          onClick={() =>
-                            toggleChainExpansion(chainPosition.chainId)
-                          }
-                        >
-                          {expandedChains.includes(chainPosition.chainId) ? (
-                            <ChevronUpCircle className="h-5 w-5" />
-                          ) : (
-                            <ChevronDownCircle className="h-5 w-5" />
-                          )}
-                        </Button>
-                      </TableCell>
+                      {chainPosition.wallets.length == 0 ? (
+                        ""
+                      ) : (
+                        <TableCell>
+                          <Button
+                            size="icon"
+                            onClick={() =>
+                              toggleChainExpansion(chainPosition.chainId)
+                            }
+                          >
+                            {expandedChain === chainPosition.chainId ? (
+                              <ChevronUpCircle className="h-5 w-5" />
+                            ) : (
+                              <ChevronDownCircle className="h-5 w-5" />
+                            )}
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
-                    {expandedChains.includes(chainPosition.chainId) && (
+                    {expandedChain === chainPosition.chainId && (
                       <TableRow>
                         <TableCell colSpan={4}>
                           <Table>
@@ -349,15 +388,28 @@ const RepayTab: React.FC<{ selectedNFT: NFT | undefined }> = ({
                             <TableBody>
                               {chainPosition.wallets.map((wallet) => (
                                 <TableRow key={wallet.address}>
-                                  <TableCell>{wallet.address}</TableCell>
+                                  <TableCell>
+                                    {bytes32ToAddress(
+                                      wallet.address as `0x${string}`
+                                    )}
+                                  </TableCell>
                                   <TableCell>
                                     {formatEther(BigInt(wallet.amount))} ETH
                                   </TableCell>
                                   <TableCell>
                                     <Checkbox
-                                      checked={selectedWallets[
-                                        chainPosition.chainId
-                                      ]?.includes(wallet.address)}
+                                      checked={
+                                        selectedWallets[
+                                          chainPosition.chainId
+                                        ] &&
+                                        selectedWallets[
+                                          chainPosition.chainId
+                                        ]?.includes(
+                                          bytes32ToAddress(
+                                            wallet.address as `0x${string}`
+                                          )
+                                        )
+                                      }
                                       onCheckedChange={() =>
                                         handleWalletSelection(
                                           chainPosition.chainId,

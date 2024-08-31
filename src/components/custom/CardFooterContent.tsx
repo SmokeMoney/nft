@@ -1,6 +1,6 @@
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Spinner } from "@chakra-ui/react";
+import { AlertDialog, Flex, Spinner } from "@chakra-ui/react";
 
 const CardFooterContent: React.FC<{ error: any; isConfirmed: boolean }> = ({
   error,
@@ -25,15 +25,18 @@ const CardFooterContent: React.FC<{ error: any; isConfirmed: boolean }> = ({
             </div>
           </AlertDescription>
         </Alert>
-      )}
+      )}  
       {isConfirmed && (
         <Alert className="break-words">
           <AlertTitle className="text-lg font-semibold">Success</AlertTitle>
           <AlertDescription className="mt-2">
-            <div>Your wallet has been added successfully!</div>
-            <div>Wallets with {"<"} 0.001 ETH gas will be refilled.</div>
-            <div>Finishing final steps</div>
-            <Spinner color="red.500" size="xl" />
+              <div>Your gas problems are in the past. </div>
+          </AlertDescription>
+          <AlertDescription className="mt-2">
+            <Flex>
+              <div>Finishing final steps...</div>
+              <Spinner color="red.500" size="xl" />
+            </Flex>
           </AlertDescription>
         </Alert>
       )}

@@ -6,15 +6,10 @@ import {
   useReadContract,
   useReadContracts,
   useChainId,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-  type BaseError,
 } from "wagmi";
 import { getBalance } from "@wagmi/core";
 import { formatEther, formatUnits, parseEther } from "viem";
-import { arbitrumSepolia } from "wagmi/chains";
 import { Address } from "viem";
-import { ChevronDownCircle, ChevronUpCircle } from "lucide-react";
 import axios from "axios";
 import {
   PriceFeed,
@@ -25,14 +20,19 @@ import DepositTabComp from "@/components/DepositTab"; // Adjust the import path 
 import RepayTab from "@/components/RepayTab"; // Add this import
 import WithdrawTab from "./components/WithdrawTab"; // Add this import
 import NFTSelector from "./components/NFTSelector"; // Add this import
+import ManageTab from "./components/ManageTab"; // Add this import
 
-import logo from "../public/logo4.png";
+import logo from "/logo4.png";
 import * as Popover from "@radix-ui/react-popover";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -41,24 +41,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
 import "./CrossChainLendingApp.css";
 import parseDumbAbis from "./abi/parsedCoreNFTAbi";
 import coreNFTRawAbi from "./abi/CoreNFTContract.abi.json";
-import { chainIds, chains, getChainName, getLZId } from "./utils/chainMapping";
+import { chainIds, chains, getLZId } from "./utils/chainMapping";
 
-import { Box, Flex, VStack, HStack } from "@chakra-ui/react";
+import { Box, Flex, VStack, HStack, Text } from "@chakra-ui/react";
 import { ModeToggle } from "./components/mode-toggle";
 import { config } from "./wagmi";
 import OverviewStrip from "./components/OverviewStrip";
 import MintNFTComp from "./components/MintNFTComp";
 import AddWalletComp from "./components/AddWalletComp";
-import { Card } from "./components/ui/card";
 import FAQContent from "./components/custom/FAQ";
+import { addressToBytes32 } from "./utils/addressConversion";
 
-export const NFT_CONTRACT_ADDRESS =
-  "0x9C2e3e224F0f5BFaB7B3C454F0b4357d424EF030" as Address;
+export const NFT_CONTRACT_ADDRESS = import.meta.env
+  .VITE_NFT_CONTRACT_ADDRESS as Address;
 
 const priceFeedIdETH =
   "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace"; // ETH/USD
@@ -94,7 +92,7 @@ export interface NFT {
   borrowPositions: WalletBorrowPosition[];
   totalBorrowPosition: string;
   chainLimits: { [chainId: string]: string };
-  extraLimit: string;
+  nativeCredit: string;
 }
 
 const CrossChainLendingApp: React.FC = () => {
@@ -145,21 +143,24 @@ const CrossChainLendingApp: React.FC = () => {
       borrowPositions: [],
       totalBorrowPosition: "0",
       chainLimits: {},
-      extraLimit: "0",
+      nativeCredit: "0",
     };
   };
 
-  const { data: nftData } = useReadContracts({
-    contracts: Array.from({ length: balance }, (_, i) => ({
-      address: NFT_CONTRACT_ADDRESS,
-      abi: coreNFTAbi,
-      functionName: "tokenOfOwnerByIndex",
-      args: [address, BigInt(i)],
-    })),
-  });
+  const switchToChain = async (newChainId: any) => {
+    switchChain({ chainId: newChainId });
+  };
+  // const { data: nftData } = useReadContracts({
+  //   contracts: Array.from({ length: balance }, (_, i) => ({
+  //     address: NFT_CONTRACT_ADDRESS,
+  //     abi: coreNFTAbi,
+  //     functionName: "tokenOfOwnerByIndex",
+  //     args: [address, BigInt(i)],
+  //   })),
+  // });
 
   // useEffect(() => {
-  //   if (nftData && chainId === arbitrumSepolia.id) {
+  //   if (nftData && chainId === baseSepolia.id) {
   //     const nfts: NFT[] = nftData
   //       .map((item) => item.result)
   //       .filter((tokenId): tokenId is bigint => tokenId !== undefined)
@@ -334,7 +335,9 @@ const CrossChainLendingApp: React.FC = () => {
   useEffect(() => {
     const fetchNFTsAndBalance = async () => {
       if (isConnected && address) {
-        const fetchedNFTs: NFT[] = await fetchWalletData(address);
+        const fetchedNFTs: NFT[] = await fetchWalletData(
+          addressToBytes32(address)
+        );
         setListNFTs((prevNFTs) =>
           mergeAndDeduplicateNFTs(prevNFTs, fetchedNFTs)
         );
@@ -383,442 +386,6 @@ const CrossChainLendingApp: React.FC = () => {
     setSelectedNFT(undefined);
   }, [address]);
 
-  const switchToAdminChain = async () => {
-    switchChain({ chainId: arbitrumSepolia.id });
-  };
-
-  const ManageTab: React.FC = () => {
-    const [newWalletAddress, setNewWalletAddress] = useState<string>("");
-
-    const handleWalletAutogasToggle = (index: number, chainIndex?: number) => {
-      setWallets((prev) => {
-        const newWallets = [...prev];
-        const targetWallet = { ...newWallets[index] };
-        let isChanged = false;
-
-        if (chainIndex !== undefined) {
-          // Toggle for specific chain
-          const newValue = !targetWallet.autogasEnabled[chainIndex];
-          if (targetWallet.autogasEnabled[chainIndex] !== newValue) {
-            targetWallet.autogasEnabled = [...targetWallet.autogasEnabled];
-            targetWallet.autogasEnabled[chainIndex] = newValue;
-            isChanged = true;
-          }
-        } else {
-          // Toggle for all chains
-          const allTrue = targetWallet.autogasEnabled.every(Boolean);
-          const newValue = !allTrue;
-          if (targetWallet.autogasEnabled.some((value) => value !== newValue)) {
-            targetWallet.autogasEnabled = targetWallet.autogasEnabled.map(
-              () => newValue
-            );
-            isChanged = true;
-          }
-        }
-
-        if (isChanged) {
-          targetWallet.isModified = true;
-          newWallets[index] = targetWallet;
-          return newWallets;
-        }
-
-        return prev;
-      });
-    };
-
-    const handleWalletLimitChange = (
-      index: number,
-      value: string,
-      chainIndex?: number
-    ) => {
-      const sanitizedValue = value.replace(/[^0-9.]/g, "");
-      const parts = sanitizedValue.split(".");
-      const formattedValue =
-        parts[0] + (parts.length > 1 ? "." + parts[1] : "");
-
-      setWallets((prev) => {
-        const newWallets = [...prev];
-        const targetWallet = { ...newWallets[index] };
-        const newLimits = [...targetWallet.limits];
-
-        try {
-          if (chainIndex !== undefined) {
-            newLimits[chainIndex] = formattedValue;
-          } else {
-            newLimits.fill(formattedValue);
-          }
-        } catch (error) {
-          if (chainIndex !== undefined) {
-            newLimits[chainIndex] = formattedValue;
-          } else {
-            newLimits.fill(formattedValue);
-          }
-        }
-
-        targetWallet.limits = newLimits;
-        targetWallet.isModified = true;
-        newWallets[index] = targetWallet;
-        return newWallets;
-      });
-    };
-
-    const handleAddWallet = () => {
-      if (newWalletAddress) {
-        setWallets((prev) => [
-          ...prev,
-          {
-            address: newWalletAddress,
-            autogasEnabled: chainList2.map(() => false),
-            limits: chainList2.map(() => "0"),
-            isModified: true,
-            isExpanded: false,
-            transactionHash: null,
-          },
-        ]);
-        setNewWalletAddress("");
-      }
-    };
-
-    const updateLimitsData = async (nftId: string, walletAddress: string) => {
-      const response = await axios.post(`${backendUrl}/api/updatelimits`, {
-        nftId: nftId,
-        walletAddress: walletAddress,
-      });
-      return response.data.status === "update_successful";
-    };
-
-    const saveChanges = (wallet: WalletConfig, index: number) => {
-      const {
-        data: hash,
-        isPending,
-        error,
-        writeContract,
-      } = useWriteContract();
-
-      const { isLoading: isConfirming, isSuccess: isConfirmed } =
-        useWaitForTransactionReceipt({
-          hash,
-        });
-
-      const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!selectedNFT || chainList2.length === 0) {
-          return;
-        }
-
-        const newLimits = wallet.limits.map((limit) =>
-          BigInt(parseEther(limit))
-        );
-        writeContract({
-          address: NFT_CONTRACT_ADDRESS,
-          abi: coreNFTAbi,
-          functionName: "setHigherBulkLimits",
-          args: [
-            BigInt(selectedNFT.id),
-            wallet.address as Address,
-            chainList2.map(BigInt),
-            newLimits,
-            wallet.autogasEnabled,
-          ],
-        });
-      };
-
-      React.useEffect(() => {
-        const updateLimitsDataMeta = async () => {
-          if (isConfirmed && address) {
-            const updateStatus = await updateLimitsData(
-              selectedNFT?.id ?? "0",
-              address
-            );
-            if (updateStatus) {
-              setUpdateDataCounter(updateDataCounter + 1);
-            }
-            setWallets((prev) => {
-              const newWallets = [...prev];
-              newWallets[index] = {
-                ...newWallets[index],
-                isModified: false,
-                transactionHash: null,
-              };
-              return newWallets;
-            });
-          }
-        };
-        updateLimitsDataMeta();
-      }, [isConfirmed]);
-
-      return (
-        <div style={{ display: "flex", flexDirection: "row", gap: 10 }}>
-          <form onSubmit={handleSubmit}>
-            <Button
-              type="submit"
-              disabled={!wallet.isModified || isConfirming || isPending}
-            >
-              {isPending
-                ? "Waiting..."
-                : isConfirming
-                ? "Confirming..."
-                : wallet.isModified
-                ? "Save Changes"
-                : "No Changes"}
-            </Button>
-            {error && (
-              <div>
-                Error: {(error as BaseError).shortMessage || error.message}
-              </div>
-            )}
-            {isConfirming && <div>Waiting for confirmation...</div>}
-            {isConfirmed && <div>Changes saved successfully!</div>}
-          </form>
-          <Button size="icon" onClick={() => toggleExpand(index)}>
-            {wallet.isExpanded ? (
-              <ChevronUpCircle className="h-5 w-5" />
-            ) : (
-              <ChevronDownCircle className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
-      );
-    };
-
-    const toggleExpand = (index: number) => {
-      setWallets((prev) => {
-        const newWallets = [...prev];
-        const targetWallet = newWallets[index];
-        const newIsExpanded = !targetWallet.isExpanded;
-        // Only update if the state is actually changing
-        if (targetWallet.isExpanded !== newIsExpanded) {
-          newWallets[index] = { ...targetWallet, isExpanded: newIsExpanded };
-          return newWallets;
-        }
-        newWallets[index].isExpanded = !newWallets[index].isExpanded;
-        // If no change is needed, return the previous state
-        return prev;
-      });
-    };
-
-    const WalletConfigTable: React.FC = () => {
-      const getAutogasDisplay = (wallet: WalletConfig, chainIndex?: number) => {
-        if (chainIndex !== undefined) {
-          const autogasConfig: boolean = wallet.autogasEnabled[chainIndex];
-          return (
-            <Checkbox
-              disabled={!selectedNFT?.owner}
-              checked={autogasConfig}
-              onCheckedChange={() =>
-                handleWalletAutogasToggle(wallets.indexOf(wallet), chainIndex)
-              }
-            />
-          );
-        } else {
-          const allTrue = wallet.autogasEnabled.every(Boolean);
-          const allFalse = wallet.autogasEnabled.every((value) => !value);
-
-          if (!allTrue && !allFalse) {
-            return <span>&#9646;</span>; // Display a dash for mixed state
-          }
-          return (
-            <Checkbox
-              disabled={!selectedNFT?.owner}
-              checked={allTrue}
-              onCheckedChange={() =>
-                handleWalletAutogasToggle(wallets.indexOf(wallet))
-              }
-            />
-          );
-        }
-      };
-
-      const getEditButton = (
-        wallet: WalletConfig,
-        index: number,
-        chainIndex?: number
-      ) => {
-        const [currentLimit, setCurrentLimit] = useState<string>(
-          wallet.limits[chainIndex ? chainIndex : 0]
-        );
-        const [alertLowerLimit, setAlertLowerLimit] = useState<boolean>(false);
-        const modifyLimit = () => {
-          if (currentLimit < wallet.limits[chainIndex ?? 0]) {
-            setAlertLowerLimit(true);
-            setCurrentLimit(wallet.limits[chainIndex ?? 0]);
-          } else {
-            handleWalletLimitChange(index, currentLimit, chainIndex);
-          }
-        };
-        return (
-          <>
-            <Popover.Root>
-              <Popover.Trigger asChild>
-                <Button
-                  disabled={
-                    !selectedNFT?.owner ||
-                    (wallet.isExpanded && chainIndex === undefined)
-                  }
-                >
-                  Edit
-                </Button>
-              </Popover.Trigger>
-
-              <Popover.Content sideOffset={5}>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
-                >
-                  <Input
-                    value={currentLimit}
-                    onChange={(e) => setCurrentLimit(e.target.value)}
-                    placeholder="Enter new limit"
-                  />
-                  <Button onClick={() => modifyLimit()}>Accept</Button>
-                  <Popover.Close asChild>
-                    <Button>Close</Button>
-                  </Popover.Close>
-                  <Popover.Arrow className="PopoverArrow" />
-                  {alertLowerLimit ? (
-                    <Alert>
-                      <AlertTitle>Heads up!</AlertTitle>
-                      <AlertDescription>
-                        For now you can only increase the limit.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              </Popover.Content>
-            </Popover.Root>
-          </>
-        );
-      };
-
-      return (
-        <div>
-          <Card>
-            <Table className="fontSizeLarge">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Wallet Address</TableHead>
-                  <TableHead>Limit</TableHead>
-                  <TableHead>Autogas</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        gap: 10,
-                        alignItems: "center",
-                      }}
-                    >
-                      <Input
-                        type="text"
-                        value={newWalletAddress}
-                        onChange={(e) => setNewWalletAddress(e.target.value)}
-                        placeholder="Enter new wallet address"
-                      />
-                      <Button onClick={handleAddWallet}>Add Wallet</Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-                {wallets.map((wallet, index) => (
-                  <React.Fragment key={wallet.address}>
-                    <TableRow>
-                      <TableCell>{wallet.address}</TableCell>
-                      <TableCell>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "row",
-                            gap: 10,
-                            alignItems: "center",
-                            textAlign: "right",
-                          }}
-                        >
-                          {wallet.limits.every(
-                            (limit) => limit === wallet.limits[0]
-                          )
-                            ? wallet.isExpanded
-                              ? "Being Configured"
-                              : `${wallet.limits[0]} ETH`
-                            : "Different limits"}
-                          {getEditButton(wallet, index)}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getAutogasDisplay(wallet)}</TableCell>
-                      <TableCell>{saveChanges(wallet, index)}</TableCell>
-                    </TableRow>
-                    {wallet.isExpanded && (
-                      <TableRow>
-                        <TableCell colSpan={4}>
-                          <Table className="fontSizeLarge">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Chain ID</TableHead>
-                                <TableHead>Autogas</TableHead>
-                                <TableHead>Limit</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {chainList2.map((chainId, chainIndex) => (
-                                <TableRow key={chainId.toString()}>
-                                  <TableCell>
-                                    {getChainName(Number(chainId))}
-                                  </TableCell>
-                                  <TableCell>
-                                    {getAutogasDisplay(wallet, chainIndex)}
-                                  </TableCell>
-                                  <TableCell>
-                                    {wallet.limits[chainIndex]} ETH
-                                    {getEditButton(wallet, index, chainIndex)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
-      );
-    };
-
-    return (
-      <div className="tab-content">
-        <Flex justify="center" align="stretch" w="full" px={4} paddingTop={10}>
-          <Flex
-            direction={{ base: "column", md: "row" }}
-            justify="center"
-            align="stretch"
-            gap={16}
-            w="full"
-            px={40}
-          >
-            {chainId === arbitrumSepolia.id ? (
-              <>
-                {listNFTs.length > 0 && (
-                  <div>
-                    <WalletConfigTable />
-                  </div>
-                )}
-              </>
-            ) : (
-              <Button onClick={switchToAdminChain}>Switch to Arbitrum</Button>
-            )}
-          </Flex>
-        </Flex>
-      </div>
-    );
-  };
 
   const DepositTab: React.FC = () => {
     return (
@@ -856,28 +423,30 @@ const CrossChainLendingApp: React.FC = () => {
           <HStack spacing={6}>
             {" "}
             <img src={logo} alt="Logo" className="app-logo" />
-            {listNFTs.length > 0 ? (
-              <>
-                <Popover.Root>
-                  <Popover.Trigger asChild>
-                    <Button>FAQ?</Button>
-                  </Popover.Trigger>
-                  <Popover.Content className="bg-primary bg-primary-foreground">
-                    <Card style={{ maxWidth: "400px" }}>
-                      <FAQContent />
-                    </Card>{" "}
-                  </Popover.Content>
-                </Popover.Root>
-              </>
-            ) : (
-              ""
-            )}
-          </HStack>
-          <NFTSelector
-            listNFTs={listNFTs}
-            selectedNFT={selectedNFT}
-            setSelectedNFT={setSelectedNFT}
-          />
+            <>
+              <Popover.Root>
+                <Popover.Trigger asChild>
+                  <Button size={"lg"} className="fontSizeMed">
+                    What is Smoke?
+                  </Button>
+                </Popover.Trigger>
+                <Popover.Content className="bg-primary bg-primary-foreground">
+                  <Card style={{ maxWidth: "400px" }}>
+                    <FAQContent />
+                  </Card>{" "}
+                </Popover.Content>
+              </Popover.Root>
+            </>
+          </HStack>{" "}
+          {listNFTs.length > 0 ? (
+            <NFTSelector
+              listNFTs={listNFTs}
+              selectedNFT={selectedNFT}
+              setSelectedNFT={setSelectedNFT}
+            />
+          ) : (
+            ""
+          )}
           <HStack spacing={6}>
             <ConnectButton />
             <ModeToggle />
@@ -898,7 +467,7 @@ const CrossChainLendingApp: React.FC = () => {
                 setUpdateDataCounter={setUpdateDataCounter}
               />
             </>
-          ) : (
+          ) : supportedChain ? (
             <>
               <Flex justify="center" align="stretch" w="full" px={4}>
                 <Flex
@@ -914,7 +483,9 @@ const CrossChainLendingApp: React.FC = () => {
                     <Button
                       className="fontSizeLarge"
                       onClick={() => setActiveTab("manage")}
-                      variant={activeTab === "manage" ? "secondary" : "default"}
+                      variant={
+                        activeTab === "manage" ? "destructive" : "default"
+                      }
                     >
                       Manage
                     </Button>
@@ -922,7 +493,7 @@ const CrossChainLendingApp: React.FC = () => {
                       className="fontSizeLarge"
                       onClick={() => setActiveTab("withdraw")}
                       variant={
-                        activeTab === "withdraw" ? "secondary" : "default"
+                        activeTab === "withdraw" ? "destructive" : "default"
                       }
                     >
                       Smoke
@@ -931,7 +502,7 @@ const CrossChainLendingApp: React.FC = () => {
                       className="fontSizeLarge"
                       onClick={() => setActiveTab("deposit")}
                       variant={
-                        activeTab === "deposit" ? "secondary" : "default"
+                        activeTab === "deposit" ? "destructive" : "default"
                       }
                     >
                       Deposit
@@ -939,7 +510,9 @@ const CrossChainLendingApp: React.FC = () => {
                     <Button
                       className="fontSizeLarge"
                       onClick={() => setActiveTab("repay")}
-                      variant={activeTab === "repay" ? "secondary" : "default"}
+                      variant={
+                        activeTab === "repay" ? "destructive" : "default"
+                      }
                     >
                       Repay
                     </Button>
@@ -954,14 +527,24 @@ const CrossChainLendingApp: React.FC = () => {
                 totalWstEthDeposits={totalWstEthDeposits}
                 wstETHRatio={wstETHRatio}
                 selectedNFT={selectedNFT}
+                nativeCredit={selectedNFT?.nativeCredit ?? "0"}
               />
-              {activeTab === "manage" && <ManageTab />}
+              {activeTab === "manage" && (
+                <ManageTab
+                  selectedNFT={selectedNFT}
+                  wallets={wallets}
+                  setWallets={setWallets}
+                  chainList2={chainList2}
+                  updateDataCounter={updateDataCounter}
+                  setUpdateDataCounter={setUpdateDataCounter}
+                />
+              )}
               {activeTab === "withdraw" && (
                 <WithdrawTab
                   selectedNFT={selectedNFT}
                   address={address}
                   ethBalance={ethBalance}
-                  supportedChain={supportedChain}
+                  ethPrice={ethPrice}
                   updateDataCounter={updateDataCounter}
                   setUpdateDataCounter={setUpdateDataCounter}
                   totalWethDeposits={totalWethDeposits}
@@ -970,8 +553,49 @@ const CrossChainLendingApp: React.FC = () => {
                 />
               )}
               {activeTab === "deposit" && <DepositTab />}
-              {activeTab === "repay" && <RepayTab selectedNFT={selectedNFT} />}
+              {activeTab === "repay" && (
+                <RepayTab
+                  selectedNFT={selectedNFT}
+                  updateDataCounter={updateDataCounter}
+                  setUpdateDataCounter={setUpdateDataCounter}
+                />
+              )}
             </>
+          ) : (
+            <VStack>
+              <Box flex={2}>
+                <Card style={{ padding: 0 }}>
+                  <CardHeader>
+                    <CardTitle>Chain not supported</CardTitle>
+                    <CardDescription>Supported Chains: </CardDescription>
+                  </CardHeader>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Chain</TableHead>
+                        <TableHead>Switch</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {chains.map((chain) => (
+                        <TableRow key={chain.legacyId}>
+                          <TableCell>
+                            <Text>{chain.name}</Text>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              onClick={() => switchToChain(chain.legacyId)}
+                            >
+                              Switch Chain
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+              </Box>
+            </VStack>
           )
         ) : (
           <MintNFTComp

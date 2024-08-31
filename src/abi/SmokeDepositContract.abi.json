@@ -8,7 +8,7 @@
         "internalType": "address"
       },
       {
-        "name": "_borrowContract",
+        "name": "_spendingContract",
         "type": "address",
         "internalType": "address"
       },
@@ -23,7 +23,7 @@
         "internalType": "address"
       },
       {
-        "name": "_nftContractChainId",
+        "name": "_adminChainId",
         "type": "uint32",
         "internalType": "uint32"
       },
@@ -38,11 +38,6 @@
         "internalType": "address"
       },
       {
-        "name": "_issuer",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
         "name": "_owner",
         "type": "address",
         "internalType": "address"
@@ -52,7 +47,20 @@
   },
   {
     "type": "function",
-    "name": "CHALLENGE_PERIOD",
+    "name": "CHALLENGER_LOCK_PERCENTAGE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "EXTENDED_CHALLENGE_PERIOD",
     "inputs": [],
     "outputs": [
       {
@@ -78,26 +86,13 @@
   },
   {
     "type": "function",
-    "name": "SEND",
+    "name": "MIN_CHALLENGE_PERIOD",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "SEND_ABA",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint16",
-        "internalType": "uint16"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -149,10 +144,28 @@
         "name": "token",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "adminChainId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -192,19 +205,6 @@
   },
   {
     "type": "function",
-    "name": "borrowContract",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract IBorrowContract"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "chainId",
     "inputs": [],
     "outputs": [
@@ -212,25 +212,6 @@
         "name": "",
         "type": "uint32",
         "internalType": "uint32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "challengeNonces",
-    "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -266,19 +247,6 @@
   },
   {
     "type": "function",
-    "name": "data",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "decodeMessage",
     "inputs": [
       {
@@ -306,6 +274,11 @@
     "name": "deposit",
     "inputs": [
       {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "token",
         "type": "address",
         "internalType": "address"
@@ -329,6 +302,11 @@
     "name": "depositETH",
     "inputs": [
       {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "nftId",
         "type": "uint256",
         "internalType": "uint256"
@@ -344,24 +322,43 @@
   },
   {
     "type": "function",
-    "name": "deposits",
-    "inputs": [
+    "name": "eip712Domain",
+    "inputs": [],
+    "outputs": [
       {
-        "name": "",
+        "name": "fields",
+        "type": "bytes1",
+        "internalType": "bytes1"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "version",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "verifyingContract",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
+        "name": "salt",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "extensions",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -408,7 +405,7 @@
     "name": "executeLiquidation",
     "inputs": [
       {
-        "name": "token",
+        "name": "issuerNFT",
         "type": "address",
         "internalType": "address"
       },
@@ -418,9 +415,9 @@
         "internalType": "uint256"
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -431,12 +428,17 @@
     "name": "executeWithdrawal",
     "inputs": [
       {
-        "name": "recipientAddress",
-        "type": "address",
-        "internalType": "address"
+        "name": "recipientBytes32",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
-        "name": "token",
+        "name": "tokenBytes32",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "issuerNFT",
         "type": "address",
         "internalType": "address"
       },
@@ -459,6 +461,11 @@
     "name": "getCurrentNonce",
     "inputs": [
       {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "nftId",
         "type": "uint256",
         "internalType": "uint256"
@@ -478,7 +485,7 @@
     "name": "getDepositAmount",
     "inputs": [
       {
-        "name": "token",
+        "name": "issuerNFT",
         "type": "address",
         "internalType": "address"
       },
@@ -486,6 +493,11 @@
         "name": "nftId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -502,7 +514,7 @@
     "name": "getIssuerLockAmount",
     "inputs": [
       {
-        "name": "token",
+        "name": "issuerNFT",
         "type": "address",
         "internalType": "address"
       },
@@ -510,6 +522,11 @@
         "name": "nftId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -526,7 +543,7 @@
     "name": "getLiquidationLockTime",
     "inputs": [
       {
-        "name": "token",
+        "name": "issuerNFT",
         "type": "address",
         "internalType": "address"
       },
@@ -534,6 +551,11 @@
         "name": "nftId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -596,7 +618,7 @@
     "name": "isLiquidationLocked",
     "inputs": [
       {
-        "name": "token",
+        "name": "issuerNFT",
         "type": "address",
         "internalType": "address"
       },
@@ -604,6 +626,11 @@
         "name": "nftId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -617,83 +644,17 @@
   },
   {
     "type": "function",
-    "name": "issuer",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "issuerLocks",
+    "name": "issuers",
     "inputs": [
       {
         "name": "",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "liquidationLockTimes",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "liquidationLocks",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
+        "name": "isIssuerAnAsshole",
         "type": "bool",
         "internalType": "bool"
       }
@@ -705,7 +666,7 @@
     "name": "lockForLiquidation",
     "inputs": [
       {
-        "name": "token",
+        "name": "issuerNFT",
         "type": "address",
         "internalType": "address"
       },
@@ -715,9 +676,9 @@
         "internalType": "uint256"
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -799,19 +760,6 @@
   },
   {
     "type": "function",
-    "name": "nftContractChainId",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "oAppVersion",
     "inputs": [],
     "outputs": [
@@ -833,14 +781,19 @@
     "name": "onChainLiqChallenge",
     "inputs": [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        "name": "issuerNFT",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "nftId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "assembleTimestamp",
@@ -854,8 +807,8 @@
       },
       {
         "name": "recipient",
-        "type": "address",
-        "internalType": "address"
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [],
@@ -892,6 +845,29 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quickChallenge",
+    "inputs": [
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "nftId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -952,6 +928,11 @@
         "name": "token",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -974,14 +955,19 @@
         "internalType": "uint256"
       },
       {
+        "name": "issuerNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "nftId",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "wallets",
-        "type": "address[]",
-        "internalType": "address[]"
+        "name": "walletsBytes32",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
       },
       {
         "name": "_extraOptions",
@@ -996,6 +982,71 @@
         "internalType": "bytes"
       }
     ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "secondaryWithdraw",
+    "inputs": [
+      {
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct SmokeDepositContract.SecondaryWithdrawParams",
+        "components": [
+          {
+            "name": "issuerNFT",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "nftId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "targetChainId",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "primary",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "recipientAddress",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      },
+      {
+        "name": "signature",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
     "stateMutability": "payable"
   },
   {
@@ -1043,19 +1094,6 @@
   },
   {
     "type": "function",
-    "name": "setNewIssuer",
-    "inputs": [
-      {
-        "name": "newIssuer",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "setPeer",
     "inputs": [
       {
@@ -1074,19 +1112,13 @@
   },
   {
     "type": "function",
-    "name": "supportedTokens",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "name": "spendingContract",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "address",
+        "internalType": "contract ISmokeSpendingContract"
       }
     ],
     "stateMutability": "view"
@@ -1119,25 +1151,6 @@
   },
   {
     "type": "function",
-    "name": "withdrawalNonces",
-    "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "wstETHAddress",
     "inputs": [],
     "outputs": [
@@ -1160,7 +1173,7 @@
         "internalType": "address"
       },
       {
-        "name": "token",
+        "name": "issuerNFT",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1170,6 +1183,12 @@
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
       },
       {
         "name": "amount",
@@ -1191,7 +1210,7 @@
         "internalType": "address"
       },
       {
-        "name": "token",
+        "name": "issuerNFT",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1203,12 +1222,24 @@
         "internalType": "uint256"
       },
       {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
         "name": "amount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
       }
     ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EIP712DomainChanged",
+    "inputs": [],
     "anonymous": false
   },
   {
@@ -1252,6 +1283,12 @@
         "internalType": "address"
       },
       {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
         "name": "nftId",
         "type": "uint256",
         "indexed": true,
@@ -1272,6 +1309,12 @@
     "inputs": [
       {
         "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "issuerNFT",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1303,6 +1346,12 @@
     "inputs": [
       {
         "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "issuerNFT",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1377,9 +1426,52 @@
         "internalType": "uint256"
       },
       {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
         "name": "nftId",
         "type": "uint256",
         "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "QuickChallengeInitiated",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "nftId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "challenger",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "lockedAmount",
+        "type": "uint256",
+        "indexed": false,
         "internalType": "uint256"
       }
     ],
@@ -1392,7 +1484,13 @@
       {
         "name": "token",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": true,
         "internalType": "address"
       }
     ],
@@ -1405,7 +1503,13 @@
       {
         "name": "token",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": true,
         "internalType": "address"
       }
     ],
@@ -1422,7 +1526,7 @@
         "internalType": "address"
       },
       {
-        "name": "token",
+        "name": "issuerNFT",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1432,6 +1536,12 @@
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
       },
       {
         "name": "amount",
@@ -1466,6 +1576,33 @@
   },
   {
     "type": "error",
+    "name": "ECDSAInvalidSignature",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ECDSAInvalidSignatureLength",
+    "inputs": [
+      {
+        "name": "length",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ECDSAInvalidSignatureS",
+    "inputs": [
+      {
+        "name": "s",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "FailedInnerCall",
     "inputs": []
   },
@@ -1489,6 +1626,11 @@
         "internalType": "bytes"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidShortString",
+    "inputs": []
   },
   {
     "type": "error",
@@ -1579,6 +1721,17 @@
         "name": "token",
         "type": "address",
         "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "StringTooLong",
+    "inputs": [
+      {
+        "name": "str",
+        "type": "string",
+        "internalType": "string"
       }
     ]
   }

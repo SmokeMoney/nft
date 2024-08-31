@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { HStack, Link, Spinner } from "@chakra-ui/react";
+import { CardBody, HStack, Link, Spinner } from "@chakra-ui/react";
 
 import { backendUrl, NFT_CONTRACT_ADDRESS } from "@/CrossChainLendingApp";
 import coreNFTRawAbi from "../abi/CoreNFTContract.abi.json";
@@ -31,6 +31,9 @@ import axios from "axios";
 import { Flex, VStack } from "@chakra-ui/react";
 import { Label } from "./ui/label";
 import CardFooterContent from "./custom/CardFooterContent";
+import { addressToBytes32 } from "@/utils/addressConversion";
+import { getChainName } from "@/utils/chainMapping";
+import { Separator } from "./ui/separator";
 const coreNFTAbi = parseDumbAbis(coreNFTRawAbi);
 
 interface AddWalletProps {
@@ -54,6 +57,10 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
   const { address } = useAccount();
   const [limit, setLimit] = useState("0.01");
   const [autogas, setAutogas] = useState(true);
+  const [autogasConfig, setAutogasConfig] = useState<Record<string, boolean>>(
+    {}
+  );
+
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [autogasHashes, setAutogasHashes] = useState<AutogasHashes[]>([]);
@@ -70,12 +77,29 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
     }
   }, [address]);
 
+  useEffect(() => {
+    // Initialize autogasConfig with false for each chain
+    const initialConfig = chainList.reduce((acc, chain) => {
+      acc[chain] = true;
+      return acc;
+    }, {} as Record<string, boolean>);
+    setAutogasConfig(initialConfig);
+  }, [chainList]);
+
+  const handleAutogasChange = (chain: string, checked: boolean) => {
+    setAutogasConfig((prev) => ({ ...prev, [chain]: checked }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!walletAddress || !nftId || chainList.length === 0) return;
 
     const limits = chainList.map(() => parseEther(limit));
-    const autogasConfig = chainList.map(() => autogas);
+    const autogasConfigArray = chainList.map((chain) => autogasConfig[chain]);
+
+    console.log("comparing addyes");
+    console.log(walletAddress);
+    console.log(addressToBytes32(walletAddress));
 
     writeContract({
       address: NFT_CONTRACT_ADDRESS,
@@ -83,10 +107,10 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
       functionName: "setHigherBulkLimits",
       args: [
         BigInt(nftId),
-        walletAddress,
+        addressToBytes32(walletAddress),
         chainList.map(BigInt),
         limits,
-        autogasConfig,
+        autogasConfigArray,
       ],
     });
   };
@@ -107,7 +131,10 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
   const updateBackend = useCallback(async () => {
     if (isConfirmed && walletAddress !== "") {
       try {
-        const status = await updateLimitsData(nftId.toString(), walletAddress);
+        const status = await updateLimitsData(
+          nftId.toString(),
+          addressToBytes32(walletAddress)
+        );
         if (status) {
           setUpdateDataCounter((prev) => prev + 1);
         }
@@ -162,15 +189,17 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
         <VStack>
           <Card>
             <CardHeader>
-              <CardTitle>Approve Your Wallet to Spend</CardTitle>
+              <CardTitle>Autogas: Gas Abstraction</CardTitle>
               <CardDescription>
-                You can approve more wallets afterwards. Plus set limits for individual chains. 
+                Never worry about gas again.
+                <p>Autogas refills your wallet soon as it </p>
+                <p>goes below a certain threshold</p>
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
-                  <div>
+                  {/* <div>
                     <Label htmlFor="wallet-address">Wallet Address</Label>
                     <Input
                       id="wallet-address"
@@ -189,28 +218,37 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
                       step="0.01"
                       min="0"
                     />
+                  </div> */}
+                  <div>
+                    <Label>Enable Autogas for Chains</Label>
+                    {chainList.map((chain) => (
+                      <div key={chain} className="flex items-center mt-2">
+                        <HStack>
+                          <Checkbox
+                            id={`autogas-${chain}`}
+                            checked={autogasConfig[chain]}
+                            onCheckedChange={(checked) =>
+                              handleAutogasChange(chain, checked as boolean)
+                            }
+                          />
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <Label htmlFor={`autogas-${chain}`}>
+                                {getChainName(Number(chain))}
+                              </Label>
+                            </HoverCardTrigger>
+                            <HoverCardContent>
+                              Autogas periodically checks your wallet balance on{" "}
+                              {chain} and refills if it falls below a threshold.
+                              Current set threshold: 0.001 ETH
+                            </HoverCardContent>
+                          </HoverCard>
+                        </HStack>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center">
-                    <HStack>
-                      <Checkbox
-                        id="autogas"
-                        checked={autogas}
-                        onCheckedChange={(checked) =>
-                          setAutogas(checked as boolean)
-                        }
-                      />
-                      <HoverCard>
-                        <HoverCardTrigger asChild>
-                          <Label htmlFor="autogas">Enable Autogas (!)</Label>
-                        </HoverCardTrigger>
-                        <HoverCardContent>
-                          Autogas periodically checks your wallet balance and
-                          refills if it falls below a threshold. Current set
-                          threshold: 0.001 ETH
-                        </HoverCardContent>
-                      </HoverCard>
-                    </HStack>
-                  </div>
+                  <Separator />
+                  <Label>Current Threshold: 0.001 ETH</Label>
                 </div>
                 <Button
                   type="submit"
