@@ -23,7 +23,12 @@ import {
 } from "@/components/ui/table";
 
 import HandleBorrow from "./HandleBorrow";
-import { getChainName, getLZId, chains, getLegacyId } from "../utils/chainMapping";
+import {
+  getChainName,
+  getLZId,
+  chains,
+  getLegacyId,
+} from "../utils/chainMapping";
 import { NFT, PositionData } from "../CrossChainLendingApp";
 import {
   DropdownMenu,
@@ -64,13 +69,14 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
     getLZId(chainId).toString() ?? "1"
   );
 
-  const walletBorrowPositions = useMemo(
-    () =>
+  const walletBorrowPositions = useMemo(() => {
+    if (!address) return [];
+    return (
       selectedNFT?.borrowPositions?.find(
-        (position) => position.walletAddress === addressToBytes32(address??"" as `0x${string}`)
-      )?.borrowPositions ?? [],
-    [selectedNFT, address, updateDataCounter]
-  );
+        (position) => position.walletAddress === addressToBytes32(address)
+      )?.borrowPositions ?? []
+    );
+  }, [selectedNFT, address, updateDataCounter]);
 
   const totalDeposits = useMemo(
     () =>
@@ -114,7 +120,6 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
     availableToBorrow,
   ]);
 
-
   const switchToChain = async (newChainId: any) => {
     switchChain({ chainId: newChainId });
   };
@@ -122,7 +127,7 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
   useEffect(() => {
     const selChain = getLegacyId(Number(selectedChain));
     if (selChain !== chainId) {
-      switchToChain(selChain)
+      switchToChain(selChain);
     }
   }, [selectedChain]);
 
@@ -144,7 +149,9 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button className="text-lg py-6 px-4 min-w-[200px]">
-                      <span className="mr-2">{getChainName(Number(selectedChain))}</span>
+                      <span className="mr-2">
+                        {getChainName(Number(selectedChain))}
+                      </span>
                       <ChevronDownIcon className="h-6 w-6" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -163,14 +170,18 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </Box>
-              
+
               <Box>
-                <Text className="font-semibold mb-2 text-lg">Chain Information</Text>
+                <Text className="font-semibold mb-2 text-lg">
+                  Chain Information
+                </Text>
                 <VStack align="stretch" spacing={3}>
                   <HStack justify="space-between" className="text-lg">
                     <Text>Available to Withdraw:</Text>
                     <Text className="font-semibold">
-                      {Number(formatEther(selectedChainAvailable)).toPrecision(4)}{" "}
+                      {Number(formatEther(selectedChainAvailable)).toPrecision(
+                        4
+                      )}{" "}
                       {selectedChain === "40291" ? "BERA" : "ETH"}
                     </Text>
                   </HStack>
@@ -186,7 +197,9 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
               </Box>
 
               <Box>
-                <Text className="font-semibold mb-2 text-lg">Withdraw Amount</Text>
+                <Text className="font-semibold mb-2 text-lg">
+                  Withdraw Amount
+                </Text>
                 <HStack>
                   <Input
                     type="number"
@@ -200,7 +213,8 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
                   </Text>
                 </HStack>
                 <Text className="text-base text-gray-500 mt-2">
-                  (${(Number(ethPrice) * Number(withdrawAmount)).toPrecision(5)})
+                  (${(Number(ethPrice) * Number(withdrawAmount)).toPrecision(5)}
+                  )
                 </Text>
               </Box>
             </VStack>
@@ -217,7 +231,8 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
           </CardFooter>
         </Card>
       )}
-    </div>  );
+    </div>
+  );
 };
 
 export default WithdrawTab;

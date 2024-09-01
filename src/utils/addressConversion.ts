@@ -13,7 +13,7 @@ export function bytes32ToAddress(bytes32Value: `0x${string}`): string {
 
   // Take the last 40 characters (20 bytes) and add '0x' prefix
   const address = `${slice(bytes32Value, 12, 32)}`;
-
+  
   // Ensure the address is checksummed
   return getAddress(address);
 }
