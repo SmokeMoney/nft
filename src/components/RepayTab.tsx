@@ -52,7 +52,8 @@ const RepayTab: React.FC<{
   selectedNFT: NFT | undefined;
   updateDataCounter: number;
   setUpdateDataCounter: any;
-}> = ({ selectedNFT, updateDataCounter, setUpdateDataCounter }) => {
+  isMobile: boolean;
+}> = ({ selectedNFT, updateDataCounter, setUpdateDataCounter, isMobile }) => {
   const [repayAmount, setRepayAmount] = useState<string>("0.0000");
   const [selectedWallets, setSelectedWallets] = useState<{
     [chainId: string]: string[];
@@ -275,162 +276,159 @@ const RepayTab: React.FC<{
   return (
     <div className="tab-content">
       <Flex
-        direction={{ base: "column", md: "row" }}
+        direction={isMobile ? "column" : "row"}
         justify="center"
-        align="stretch"
         gap={16}
         padding={10}
+        alignItems={isMobile ? "stretch" : ""}
         w="full"
-        px={400}
+        // px={400}
       >
-        <Box flex={1} maxW={{ base: "full", md: "800px" }}>
-          <Card className="fontSizeLarge">
-            <CardHeader>
-              <CardTitle>Repay</CardTitle>
-              <CardDescription className="fontSizeLarge">
-                Repay ETH for selected wallets
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Input
-                className="fontSizeLarge"
-                type="number"
-                placeholder="Amount"
-                value={repayAmount}
-                onChange={(e) => setRepayAmount(e.target.value)}
-              />
-            </CardContent>
-            <CardFooter>
-              {isCorrectChain ? (
-                <Button
-                  onClick={handleRepay}
-                  disabled={
-                    !repayAmount || repayAmount === "0" || !selectedChainId
-                  }
-                >
-                  Repay
-                </Button>
-              ) : (
-                <Button onClick={handleSwitchChain} disabled={!selectedChainId}>
-                  Switch Chain
-                </Button>
-              )}
-              {error && <div>Error: {error.message}</div>}
-              {isConfirmed && <div>Transaction confirmed!</div>}
-            </CardFooter>
-          </Card>
-        </Box>
-        <Box flex={1.5}>
-          <Card>
-            <Table className="fontSizeLarge">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Chain</TableHead>
-                  <TableHead>Total Borrow Amount</TableHead>
-                  <TableHead>Interest</TableHead>
-                  <TableHead>Select All</TableHead>
-                  <TableHead>Expand</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {chainBorrowPositions.map((chainPosition) => (
-                  <React.Fragment key={chainPosition.chainId}>
-                    <TableRow>
+        <Card className="fontSizeLarge">
+          <CardHeader>
+            <CardTitle>Repay</CardTitle>
+            <CardDescription className="fontSizeLarge">
+              Repay ETH for selected wallets
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Input
+              className="fontSizeLarge"
+              type="number"
+              placeholder="Amount"
+              value={repayAmount}
+              onChange={(e) => setRepayAmount(e.target.value)}
+            />
+          </CardContent>
+          <CardFooter>
+            {isCorrectChain ? (
+              <Button
+                onClick={handleRepay}
+                disabled={
+                  !repayAmount || repayAmount === "0" || !selectedChainId
+                }
+              >
+                Repay
+              </Button>
+            ) : (
+              <Button onClick={handleSwitchChain} disabled={!selectedChainId}>
+                Switch Chain
+              </Button>
+            )}
+            {error && <div>Error: {error.message}</div>}
+            {isConfirmed && <div>Transaction confirmed!</div>}
+          </CardFooter>
+        </Card>
+        <Card>
+          <Table className="fontSizeLarge">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Chain</TableHead>
+                <TableHead>Total Borrow Amount</TableHead>
+                <TableHead>Interest</TableHead>
+                <TableHead>Select All</TableHead>
+                <TableHead>Expand</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {chainBorrowPositions.map((chainPosition) => (
+                <React.Fragment key={chainPosition.chainId}>
+                  <TableRow>
+                    <TableCell>
+                      {getChainName(Number(chainPosition.chainId))}
+                    </TableCell>
+                    <TableCell>
+                      {Number(
+                        formatEther(BigInt(chainPosition.totalAmount))
+                      ).toPrecision(4)}{" "}
+                      ETH
+                    </TableCell>
+                    <TableCell>5%</TableCell>
+                    <TableCell>
+                      <Checkbox
+                        checked={
+                          selectedWallets[chainPosition.chainId]?.length ===
+                          chainPosition.wallets.length
+                        }
+                        onCheckedChange={() =>
+                          handleChainSelection(chainPosition.chainId)
+                        }
+                        disabled={chainPosition.wallets.length == 0}
+                      />
+                    </TableCell>
+                    {chainPosition.wallets.length == 0 ? (
+                      ""
+                    ) : (
                       <TableCell>
-                        {getChainName(Number(chainPosition.chainId))}
-                      </TableCell>
-                      <TableCell>
-                        {formatEther(BigInt(chainPosition.totalAmount))} ETH
-                      </TableCell>
-                      <TableCell>5%</TableCell>
-                      <TableCell>
-                        <Checkbox
-                          checked={
-                            selectedWallets[chainPosition.chainId]?.length ===
-                            chainPosition.wallets.length
+                        <Button
+                          size="icon"
+                          onClick={() =>
+                            toggleChainExpansion(chainPosition.chainId)
                           }
-                          onCheckedChange={() =>
-                            handleChainSelection(chainPosition.chainId)
-                          }
-                          disabled={chainPosition.wallets.length == 0}
-                        />
+                        >
+                          {expandedChain === chainPosition.chainId ? (
+                            <ChevronUpCircle className="h-5 w-5" />
+                          ) : (
+                            <ChevronDownCircle className="h-5 w-5" />
+                          )}
+                        </Button>
                       </TableCell>
-                      {chainPosition.wallets.length == 0 ? (
-                        ""
-                      ) : (
-                        <TableCell>
-                          <Button
-                            size="icon"
-                            onClick={() =>
-                              toggleChainExpansion(chainPosition.chainId)
-                            }
-                          >
-                            {expandedChain === chainPosition.chainId ? (
-                              <ChevronUpCircle className="h-5 w-5" />
-                            ) : (
-                              <ChevronDownCircle className="h-5 w-5" />
-                            )}
-                          </Button>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                    {expandedChain === chainPosition.chainId && (
-                      <TableRow>
-                        <TableCell colSpan={4}>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Wallet</TableHead>
-                                <TableHead>Borrow Amount</TableHead>
-                                <TableHead>Select</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {chainPosition.wallets.map((wallet) => (
-                                <TableRow key={wallet.address}>
-                                  <TableCell>
-                                    {bytes32ToAddress(
-                                      wallet.address as `0x${string}`
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    {formatEther(BigInt(wallet.amount))} ETH
-                                  </TableCell>
-                                  <TableCell>
-                                    <Checkbox
-                                      checked={
-                                        selectedWallets[
-                                          chainPosition.chainId
-                                        ] &&
-                                        selectedWallets[
-                                          chainPosition.chainId
-                                        ]?.includes(
-                                          bytes32ToAddress(
-                                            wallet.address as `0x${string}`
-                                          )
-                                        )
-                                      }
-                                      onCheckedChange={() =>
-                                        handleWalletSelection(
-                                          chainPosition.chainId,
-                                          wallet.address
-                                        )
-                                      }
-                                    />
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableCell>
-                      </TableRow>
                     )}
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </Box>
+                  </TableRow>
+                  {expandedChain === chainPosition.chainId && (
+                    <TableRow>
+                      <TableCell colSpan={4}>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Wallet</TableHead>
+                              <TableHead>Borrow Amount</TableHead>
+                              <TableHead>Select</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {chainPosition.wallets.map((wallet) => (
+                              <TableRow key={wallet.address}>
+                                <TableCell>
+                                  {bytes32ToAddress(
+                                    wallet.address as `0x${string}`
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {formatEther(BigInt(wallet.amount))} ETH
+                                </TableCell>
+                                <TableCell>
+                                  <Checkbox
+                                    checked={
+                                      selectedWallets[chainPosition.chainId] &&
+                                      selectedWallets[
+                                        chainPosition.chainId
+                                      ]?.includes(
+                                        bytes32ToAddress(
+                                          wallet.address as `0x${string}`
+                                        )
+                                      )
+                                    }
+                                    onCheckedChange={() =>
+                                      handleWalletSelection(
+                                        chainPosition.chainId,
+                                        wallet.address
+                                      )
+                                    }
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       </Flex>
     </div>
   );

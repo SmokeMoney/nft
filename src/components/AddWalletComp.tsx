@@ -80,7 +80,7 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
   useEffect(() => {
     // Initialize autogasConfig with false for each chain
     const initialConfig = chainList.reduce((acc, chain) => {
-      acc[chain] = true;
+      acc[chain] = chain == "40161" ? false: true;
       return acc;
     }, {} as Record<string, boolean>);
     setAutogasConfig(initialConfig);
@@ -172,10 +172,6 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
     return () => clearTimeout(timer);
   }, [isConfirmed, countdown]);
 
-  const forceRefresh = () => {
-    window.location.reload();
-  };
-
   return (
     <Flex justify="center" align="stretch" w="full" px={4}>
       <Flex
@@ -221,6 +217,9 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
                   </div> */}
                   <div>
                     <Label>Enable Autogas for Chains</Label>
+                    <CardDescription>
+                      (You can change this later)
+                    </CardDescription>
                     {chainList.map((chain) => (
                       <div key={chain} className="flex items-center mt-2">
                         <HStack>

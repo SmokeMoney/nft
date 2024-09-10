@@ -35,8 +35,7 @@ const FAQContent: React.FC<{}> = ({}) => {
           <AccordionItem value="item-2">
             <AccordionTrigger>How can I start using it?</AccordionTrigger>
             <AccordionContent>
-              When you mint this NFT, you get a small credit to spend. Try it
-              out on the next but next screen.
+              When you mint this NFT, you get a small credit to spend. Go try spending it on all the chains we support. 
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-3">
@@ -44,7 +43,7 @@ const FAQContent: React.FC<{}> = ({}) => {
             <AccordionContent>
               Autogas is a feature that automatically refills your gas if it
               falls below a preset threshold. You'll never have to worry about
-              gas every again.
+              gas ever again.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-4">

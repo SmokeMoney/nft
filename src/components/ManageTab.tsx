@@ -252,6 +252,10 @@ const ManageTab: React.FC<ManageTabProps> = ({
     );
   };
 
+  const forceRefresh = () => {
+    window.location.reload();
+  };
+  
   const toggleExpand = (index: number) => {
     setWallets((prev) => {
       const newWallets = [...prev];

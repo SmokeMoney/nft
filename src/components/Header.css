@@ -1,0 +1,74 @@
+.header {
+    position: relative;
+    width: 100%;
+    padding: 1rem;
+    z-index: 49;
+  }
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+  }
+  
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .app-logo {
+    height: auto;
+    width: auto;
+    max-height: 69px;
+  }
+  
+  .menu-toggle {
+    display: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+
+  .menu-items {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .dropdown-menu {
+    z-index: 90; /* Lower than the mode-toggle */
+  }
+  @media (max-width: 768px) {
+    .menu-toggle {
+      display: block;
+    }
+  
+    .menu-items {
+      display: none;
+      flex-direction: column;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      padding: 1rem;
+      box-shadow: 0 6px 9px rgba(0,0,0,0.15);
+      border-radius: 8px;
+      overflow: hidden;    
+    }
+
+    .connect-mode-toggle {
+        justify-content: space-between;
+    }
+  
+    .menu-items.open {
+      display: flex;
+    }
+  
+    .menu-items > * {
+      width: 69%;
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  

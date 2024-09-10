@@ -38,6 +38,7 @@ import {
   HoverCardContent,
 } from "@/components/ui/hover-card";
 
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Flex, HStack, Spinner, VStack } from "@chakra-ui/react";
 
 // You'll need to import your ABI here\
@@ -57,7 +58,7 @@ const MintNFTComp: React.FC<{
   setUpdateDataCounter: any;
 }> = ({ ethBalance, updateDataCounter, setUpdateDataCounter }) => {
   const chainId = useChainId();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
   const { data: hash, error, isPending, writeContract } = useWriteContract();
   const [faucetHash, setFaucetHash] = useState<string>("");
@@ -205,7 +206,9 @@ const MintNFTComp: React.FC<{
               <CardFooter>
                 <Flex direction="column" width="100%">
                   <Flex justify="space-between" wrap="wrap" gap={2}>
-                    {baseSepolia.id === chainId ? (
+                    {!isConnected ? (
+                      <ConnectButton />
+                    ) : baseSepolia.id === chainId ? (
                       <Button
                         onClick={handleMint}
                         disabled={isPending || isConfirming}
@@ -234,7 +237,7 @@ const MintNFTComp: React.FC<{
                             className="flex-grow"
                             disabled
                           >
-                            Bridge to Arbitrum{" "}
+                            Bridge to Base{" "}
                             <ChevronDownIcon className="ml-2 h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -333,12 +336,6 @@ const MintNFTComp: React.FC<{
               </CardFooter>
             </Card>
           </VStack>
-
-          {/* <div className="w-full max-w-full overflow-hidden"> */}
-          {/* <Card style={{ width: "49%" }}>
-            <FAQContent />
-          </Card> */}
-          {/* </div> */}
         </Flex>
       </Flex>
     </div>

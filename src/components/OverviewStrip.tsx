@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { Flex, HStack, Text } from "@chakra-ui/react";
 import { Separator } from "@/components/ui/separator";
@@ -20,6 +20,7 @@ interface OverviewStripProps {
   wstETHRatio: string;
   selectedNFT: NFT | undefined;
   nativeCredit: string;
+  isMobile: boolean;
 }
 
 const OverviewStrip: React.FC<OverviewStripProps> = ({
@@ -31,6 +32,7 @@ const OverviewStrip: React.FC<OverviewStripProps> = ({
   wstETHRatio,
   selectedNFT,
   nativeCredit,
+  isMobile,
 }) => {
   const calculations = useMemo(() => {
     const wstEthInEth =
@@ -83,69 +85,66 @@ const OverviewStrip: React.FC<OverviewStripProps> = ({
     <div className="fontSizeLarge">
       <Flex justify="center" align="stretch" w="full" px={4}>
         <Flex
-          direction={{ base: "column", md: "row" }}
+          direction={isMobile ? "column" : "row"}
           justify="center"
-          align="stretch"
-          gap={16}
+          alignItems="center"
+          gap={2}
           w="full"
           px={40}
+          py={8}
         >
-          <HStack justify="stretch">
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <Button variant={"outline"} className="fontSizeLarge">
-                  Available to Withdraw:{" "}
-                  {formatValue(
-                    ethOrUSD
-                      ? calculations.availableToBorrowUsd
-                      : calculations.availableToBorrowEth
-                  )}
-                  {ethOrUSD ? " USD" : " ETH"} (!)
-                </Button>
-              </HoverCardTrigger>
-              <HoverCardContent className="hover-card-content">
-                <Text>
-                  Total Deposits:{" "}
-                  {formatValue(
-                    ethOrUSD
-                      ? calculations.totalDepositsUsd
-                      : calculations.totalDepositsEth,
-                    6
-                  )}
-                  {ethOrUSD ? " USD" : " ETH"}
-                </Text>
-                <Separator orientation="horizontal" />
-                <Text>
-                  {">"} ETH Deposits: {formatValue(calculations.wethDeposits)}{" "}
-                  ETH
-                </Text>
-                <Separator orientation="horizontal" />
-                <Text>
-                  {">"} wstETH Deposits:{" "}
-                  {formatValue(calculations.wstEthDeposits)} wstETH
-                </Text>
-                <Separator orientation="horizontal" />
-                <Text>
-                  {">"} Extra Credits:{" "}
-                  {formatValue(BigInt(nativeCredit))} ETH
-                </Text>
-                <Separator orientation="horizontal" />
-                Total Borrowed:{" "}
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <Button variant={"outline"} className="fontSizeLarge">
+                Available Across Chains:{" "}
                 {formatValue(
                   ethOrUSD
-                    ? calculations.totalBorrowedUsd
-                    : calculations.totalBorrowed
+                    ? calculations.availableToBorrowUsd
+                    : calculations.availableToBorrowEth
+                )}
+                {ethOrUSD ? " USD" : " ETH"} (!)
+              </Button>
+            </HoverCardTrigger>
+            <HoverCardContent className="hover-card-content">
+              <Text>
+                Total Deposits:{" "}
+                {formatValue(
+                  ethOrUSD
+                    ? calculations.totalDepositsUsd
+                    : calculations.totalDepositsEth,
+                  6
                 )}
                 {ethOrUSD ? " USD" : " ETH"}
-              </HoverCardContent>
-            </HoverCard>
-            <Separator orientation="vertical" />
-            <HStack>
-              <Text>ETH</Text>
-              <Switch checked={ethOrUSD} onCheckedChange={setEthOrUSD} />
-              <Text>USD</Text>
-              <Text>( ETH: ${Number(ethPrice).toPrecision(6)} )</Text>
-            </HStack>
+              </Text>
+              <Separator orientation="horizontal" />
+              <Text>
+                {">"} ETH Deposits: {formatValue(calculations.wethDeposits)} ETH
+              </Text>
+              <Separator orientation="horizontal" />
+              <Text>
+                {">"} wstETH Deposits:{" "}
+                {formatValue(calculations.wstEthDeposits)} wstETH
+              </Text>
+              <Separator orientation="horizontal" />
+              <Text>
+                {">"} Extra Credits: {formatValue(BigInt(nativeCredit))} ETH
+              </Text>
+              <Separator orientation="horizontal" />
+              Total Borrowed:{" "}
+              {formatValue(
+                ethOrUSD
+                  ? calculations.totalBorrowedUsd
+                  : calculations.totalBorrowed
+              )}
+              {ethOrUSD ? " USD" : " ETH"}
+            </HoverCardContent>
+          </HoverCard>
+          <Separator orientation={isMobile ? "horizontal" : "vertical"} />
+          <HStack>
+            <Text>ETH</Text>
+            <Switch checked={ethOrUSD} onCheckedChange={setEthOrUSD} />
+            <Text>USD</Text>
+            <Text>( ETH: ${Number(ethPrice).toPrecision(6)} )</Text>
           </HStack>
         </Flex>
       </Flex>

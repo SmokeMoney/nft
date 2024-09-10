@@ -30,6 +30,13 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { ChevronDownIcon } from "lucide-react";
+import {
   getChainLendingAddress,
   getChainName,
   getDepositAddress,
@@ -41,7 +48,14 @@ import {
 import { NFT, backendUrl } from "@/CrossChainLendingApp";
 import depositRawAbi from "../abi/SmokeDepositContract.abi.json";
 import erc20Abi from "../abi/ERC20.abi.json"; // Make sure you have this ABI
-import { Flex } from "@chakra-ui/react";
+import {
+  Flex,
+  useBreakpointValue,
+  Text,
+  Box,
+  VStack,
+  HStack,
+} from "@chakra-ui/react";
 import axios from "axios";
 import { berachainTestnetbArtio } from "viem/chains";
 
@@ -49,9 +63,10 @@ const DepositTabComp: React.FC<{
   selectedNFT: NFT;
   updateDataCounter: number;
   setUpdateDataCounter: any;
-}> = ({ selectedNFT, updateDataCounter, setUpdateDataCounter }) => {
+  isMobile: boolean;
+}> = ({ selectedNFT, updateDataCounter, setUpdateDataCounter, isMobile }) => {
   const [depositAmount, setDepositAmount] = useState("");
-  const [selectedToken, setSelectedToken] = useState("wstETH");
+  const [selectedToken, setSelectedToken] = useState("ETH");
   const [selectedChain, setSelectedChain] = useState("");
   const [isApproved, setIsApproved] = useState(false);
   const chainId = useChainId();
@@ -143,7 +158,6 @@ const DepositTabComp: React.FC<{
       });
     }
   };
-
   useEffect(() => {
     const updateBackend = async () => {
       if (isConfirmed) {
@@ -157,10 +171,14 @@ const DepositTabComp: React.FC<{
   }, [isConfirmed, isConfirming]);
 
   return (
-    <div className="tab-content">
-      {/* <div style={{ display: "flex", gap: "20px" }}> */}
-      <Flex gap={16} px={400} paddingTop={10}>
-        <Card style={{ flex: 1 }}>
+    <Box className="tab-content" p={4}>
+      <Flex
+        direction={isMobile ? "column" : "row"}
+        justifyContent={isMobile ? "" : "center"}
+        alignItems={isMobile ? "center" : ""}
+        gap={20}
+      >
+        <Card className="max-w-md" style={{minWidth: isMobile?"50%":""}}>
           <CardHeader>
             <CardTitle>Deposit</CardTitle>
             <CardDescription className="fontSizeLarge">
@@ -170,118 +188,148 @@ const DepositTabComp: React.FC<{
           </CardHeader>
           <CardContent>
             <form onSubmit={handleDeposit}>
-              <div style={{ marginBottom: "10px" }}>
-                <RadioGroup
-                  defaultValue="wstETH"
-                  onValueChange={(e) => setSelectedToken(e)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="wstETH" id="option-one" />
-                    <Label htmlFor="option-one">wstETH</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="ETH" id="option-two" />
-                    <Label htmlFor="option-two">
-                      {chainId === berachainTestnetbArtio.id ? "BERA" : "ETH"}
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              <Input
-                type="number"
-                placeholder="Amount"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-              />
+              <VStack gap={7} alignItems={"flex-start"}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="text-lg py-6 px-4 min-w-[200px]">
+                      <span className="mr-2">
+                        {getChainName(Number(selectedChain))}
+                      </span>
+                      <ChevronDownIcon className="h-6 w-6" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="min-w-[200px]">
+                    {Object.entries(selectedNFT?.chainLimits ?? {}).map(
+                      ([chainId2, _]) => (
+                        <DropdownMenuItem
+                          key={chainId2}
+                          onClick={() => setSelectedChain(chainId2)}
+                          className="text-lg py-3"
+                        >
+                          {getChainName(Number(chainId2))}
+                        </DropdownMenuItem>
+                      )
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <div style={{ margin: "10px" }}>
+                  <RadioGroup
+                    defaultValue={selectedToken}
+                    onValueChange={(e) => setSelectedToken(e)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="wstETH" id="option-one" />
+                      <Label htmlFor="option-one">wstETH</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="ETH" id="option-two" />
+                      <Label htmlFor="option-two">
+                        {chainId === berachainTestnetbArtio.id ? "BERA" : "ETH"}
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                <Input
+                  type="number"
+                  placeholder="Amount"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                />
+              </VStack>
             </form>
           </CardContent>
           <CardFooter>
-            {getLegacyId(Number(selectedChain)) === chainId ? (
-              selectedToken === "wstETH" &&
-              !isApproved &&
-              Number(depositAmount) !== 0 ? (
-                <Button
-                  onClick={handleApprove}
-                  disabled={isPending || isConfirming}
-                >
-                  {isPending
-                    ? "Approving..."
-                    : isConfirming
-                    ? "Processing..."
-                    : "Approve wstETH"}
-                </Button>
+            <VStack spacing={2} align="stretch" width="100%">
+              {getLegacyId(Number(selectedChain)) === chainId ? (
+                selectedToken === "wstETH" &&
+                !isApproved &&
+                Number(depositAmount) !== 0 ? (
+                  <Button
+                    onClick={handleApprove}
+                    disabled={isPending || isConfirming}
+                  >
+                    {isPending
+                      ? "Approving..."
+                      : isConfirming
+                      ? "Processing..."
+                      : "Approve wstETH"}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleDeposit}
+                    disabled={
+                      isPending || isConfirming || Number(depositAmount) === 0
+                    }
+                  >
+                    {isPending
+                      ? "Confirming..."
+                      : isConfirming
+                      ? "Processing..."
+                      : "Deposit"}
+                  </Button>
+                )
               ) : (
                 <Button
-                  onClick={handleDeposit}
-                  disabled={
-                    isPending || isConfirming || Number(depositAmount) === 0
+                  onClick={() =>
+                    switchToChain(getLegacyId(Number(selectedChain)))
                   }
                 >
-                  {isPending
-                    ? "Confirming..."
-                    : isConfirming
-                    ? "Processing..."
-                    : "Deposit"}
+                  Switch Chain
                 </Button>
-              )
-            ) : (
-              <Button
-                onClick={() =>
-                  switchToChain(getLegacyId(Number(selectedChain)))
-                }
-              >
-                Switch Chain
-              </Button>
-            )}
+              )}
+              {error && <Text color="red.500">Error: {error.message}</Text>}
+              {isConfirmed && (
+                <Text color="green.500">Transaction confirmed!</Text>
+              )}
+            </VStack>
           </CardFooter>
-          {error && <div>Error: {error.message}</div>}
-          {isConfirmed && <div>Transaction confirmed!</div>}
         </Card>
-
-        <Card style={{ flex: 1.5 }}>
-          <Table className="fontSizeLarge">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Chain</TableHead>
-                <TableHead>ETH Deposits</TableHead>
-                <TableHead>wstETH Deposits</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Object.entries(selectedNFT.chainLimits).map(([chainId, _]) => {
-                const wethDeposit =
-                  selectedNFT.wethDeposits.find((d) => d.chainId === chainId)
-                    ?.amount ?? "0";
-                const wstEthDeposit =
-                  selectedNFT.wstEthDeposits.find((d) => d.chainId === chainId)
-                    ?.amount ?? "0";
-                return (
-                  <TableRow
-                    key={chainId}
-                    className={
-                      selectedChain === chainId ? "SelectedBorRow" : ""
-                    }
-                    onClick={() => setSelectedChain(chainId)}
-                  >
-                    <TableCell>
-                      {selectedChain === chainId ? "< " : ""}
-                      {getChainName(Number(chainId))}
-                    </TableCell>
-                    <TableCell>
-                      {formatEther(BigInt(wethDeposit))}{" "}
-                      {chainId === "40291" ? "BERA" : "ETH"}
-                    </TableCell>
-                    <TableCell>
-                      {formatEther(BigInt(wstEthDeposit))} wstETH
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+        <Card className="max-w-2xl" style={{alignSelf: "normal"}}>
+          <Box overflowX="auto">
+            <Table className="fontSizeLarge">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Chain</TableHead>
+                  <TableHead>ETH Deposits</TableHead>
+                  <TableHead>wstETH Deposits</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(selectedNFT.chainLimits).map(([chainId, _]) => {
+                  const wethDeposit =
+                    selectedNFT.wethDeposits.find((d) => d.chainId === chainId)
+                      ?.amount ?? "0";
+                  const wstEthDeposit =
+                    selectedNFT.wstEthDeposits.find(
+                      (d) => d.chainId === chainId
+                    )?.amount ?? "0";
+                  return (
+                    <TableRow
+                      key={chainId}
+                      className={
+                        selectedChain === chainId ? "SelectedBorRow" : ""
+                      }
+                      onClick={() => setSelectedChain(chainId)}
+                    >
+                      <TableCell>
+                        {getChainName(Number(chainId))}
+                      </TableCell>
+                      <TableCell>
+                        {formatEther(BigInt(wethDeposit))}{" "}
+                        {chainId === "40291" ? "BERA" : "ETH"}
+                      </TableCell>
+                      <TableCell>
+                        {formatEther(BigInt(wstEthDeposit))} wstETH
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Box>
         </Card>
       </Flex>
-    </div>
+    </Box>
     // </div>
   );
 };

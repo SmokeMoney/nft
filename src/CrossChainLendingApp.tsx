@@ -46,14 +46,29 @@ import parseDumbAbis from "./abi/parsedCoreNFTAbi";
 import coreNFTRawAbi from "./abi/CoreNFTContract.abi.json";
 import { chainIds, chains, getLZId } from "./utils/chainMapping";
 
-import { Box, Flex, VStack, HStack, Text } from "@chakra-ui/react";
-import { ModeToggle } from "./components/mode-toggle";
+import {
+  Box,
+  Flex,
+  VStack,
+  HStack,
+  Text,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Icon,
+} from "@chakra-ui/react";
+import { HamburgerIcon } from "@chakra-ui/icons"; // Import the HamburgerIcon
+
+import { ModeToggle } from "./components/custom/mode-toggle";
 import { config } from "./wagmi";
 import OverviewStrip from "./components/OverviewStrip";
 import MintNFTComp from "./components/MintNFTComp";
 import AddWalletComp from "./components/AddWalletComp";
 import FAQContent from "./components/custom/FAQ";
 import { addressToBytes32 } from "./utils/addressConversion";
+import Header from "./components/Header";
+import ZoraTab from "./components/ZoraTab";
 
 export const NFT_CONTRACT_ADDRESS = import.meta.env
   .VITE_NFT_CONTRACT_ADDRESS as Address;
@@ -118,6 +133,17 @@ const CrossChainLendingApp: React.FC = () => {
     functionName: "balanceOf",
     args: [address as Address],
   });
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (chainId) {
@@ -386,13 +412,13 @@ const CrossChainLendingApp: React.FC = () => {
     setSelectedNFT(undefined);
   }, [address]);
 
-
   const DepositTab: React.FC = () => {
     return (
       <DepositTabComp
         selectedNFT={selectedNFT ?? blankNFT(BigInt(0))}
         updateDataCounter={updateDataCounter}
         setUpdateDataCounter={setUpdateDataCounter}
+        isMobile={isMobile}
       />
     );
   };
@@ -414,44 +440,12 @@ const CrossChainLendingApp: React.FC = () => {
   return (
     <div className="app-container">
       <div className="main-content">
-        <Flex
-          width="100%"
-          justifyContent="space-between"
-          alignItems="center"
-          p={4}
-        >
-          <HStack spacing={6}>
-            {" "}
-            <img src={logo} alt="Logo" className="app-logo" />
-            <>
-              <Popover.Root>
-                <Popover.Trigger asChild>
-                  <Button size={"lg"} className="fontSizeMed">
-                    What is Smoke?
-                  </Button>
-                </Popover.Trigger>
-                <Popover.Content className="bg-primary bg-primary-foreground">
-                  <Card style={{ maxWidth: "400px" }}>
-                    <FAQContent />
-                  </Card>{" "}
-                </Popover.Content>
-              </Popover.Root>
-            </>
-          </HStack>{" "}
-          {listNFTs.length > 0 ? (
-            <NFTSelector
-              listNFTs={listNFTs}
-              selectedNFT={selectedNFT}
-              setSelectedNFT={setSelectedNFT}
-            />
-          ) : (
-            ""
-          )}
-          <HStack spacing={6}>
-            <ConnectButton />
-            <ModeToggle />
-          </HStack>
-        </Flex>
+        <Header
+          listNFTs={listNFTs}
+          selectedNFT={selectedNFT}
+          setSelectedNFT={setSelectedNFT}
+          isMobile={isMobile}
+        />
         {listNFTs.length > 0 ? (
           selectedNFT &&
           Object.values(selectedNFT.chainLimits).reduce(
@@ -459,27 +453,27 @@ const CrossChainLendingApp: React.FC = () => {
             0
           ) === 0 &&
           selectedNFT.owner ? (
-            <>
-              <AddWalletComp
-                nftId={selectedNFT.id}
-                chainList={chainList2}
-                updateDataCounter={updateDataCounter}
-                setUpdateDataCounter={setUpdateDataCounter}
-              />
-            </>
+            <AddWalletComp
+              nftId={selectedNFT.id}
+              chainList={chainList2}
+              updateDataCounter={updateDataCounter}
+              setUpdateDataCounter={setUpdateDataCounter}
+            />
           ) : supportedChain ? (
             <>
               <Flex justify="center" align="stretch" w="full" px={4}>
                 <Flex
-                  direction={{ base: "column", md: "row" }}
+                  direction={{ base: "column", md: "row" }} // Adjust direction for mobile
                   justify="center"
                   align="stretch"
                   gap={16}
                   padding={10}
                   w="full"
-                  px={400}
+                  px={{ base: 4, md: 400 }} // Adjust padding for mobile
                 >
-                  <HStack spacing={10}>
+                  <HStack spacing={10} wrap="wrap">
+                    {" "}
+                    // Allow wrapping for mobile
                     <Button
                       className="fontSizeLarge"
                       onClick={() => setActiveTab("manage")}
@@ -516,6 +510,15 @@ const CrossChainLendingApp: React.FC = () => {
                     >
                       Repay
                     </Button>
+                    <Button
+                      className="fontSizeLarge"
+                      onClick={() => setActiveTab("zora")}
+                      variant={
+                        activeTab === "repay" ? "destructive" : "default"
+                      }
+                    >
+                      Zora
+                    </Button>
                   </HStack>
                 </Flex>
               </Flex>
@@ -528,6 +531,7 @@ const CrossChainLendingApp: React.FC = () => {
                 wstETHRatio={wstETHRatio}
                 selectedNFT={selectedNFT}
                 nativeCredit={selectedNFT?.nativeCredit ?? "0"}
+                isMobile={isMobile}
               />
               {activeTab === "manage" && (
                 <ManageTab
@@ -558,7 +562,11 @@ const CrossChainLendingApp: React.FC = () => {
                   selectedNFT={selectedNFT}
                   updateDataCounter={updateDataCounter}
                   setUpdateDataCounter={setUpdateDataCounter}
+                  isMobile={isMobile}
                 />
+              )}
+              {activeTab === "zora" && (
+                <ZoraTab/>
               )}
             </>
           ) : (

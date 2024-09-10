@@ -46,12 +46,6 @@
   opacity: 0;
   animation: rise 3s infinite;
 }
-.app-logo {
-  height: 69px; /* Adjust this value to match your desired logo size */
-  width: auto; /* This maintains the aspect ratio of your logo */
-  margin-right: 20px; /* Adds some space between the logo and other elements */
-  padding-left: 25px;
-}
 
 /* Make the logo responsive */
 @media (max-width: 768px) {

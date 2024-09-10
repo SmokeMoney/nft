@@ -17,17 +17,20 @@ interface NFTSelectorProps {
   listNFTs: NFT[];
   selectedNFT: NFT | undefined;
   setSelectedNFT: React.Dispatch<React.SetStateAction<NFT | undefined>>;
+  isMobile: boolean;
 }
 
 const NFTSelector: React.FC<NFTSelectorProps> = ({
   listNFTs,
   selectedNFT,
   setSelectedNFT,
+  isMobile,
 }) => {
-
   return (
     <HStack gap={10}>
-      <Text className="fontSizeLarge">Your Smoke NFT:</Text>
+      <Text className="fontSizeLarge font-semibold">
+        {isMobile ? "" : "Smoke "}Card:
+      </Text>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button className="fontSizeLarge" variant={"default"}>

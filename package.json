@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@chakra-ui/icons": "^2.1.1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@pythnetwork/price-service-client": "^1.9.0",
@@ -26,6 +27,7 @@
     "@tanstack/query-sync-storage-persister": "5.0.5",
     "@tanstack/react-query": ">=5.45.1",
     "@tanstack/react-query-persist-client": "5.0.5",
+    "@zoralabs/protocol-sdk": "^0.9.6",
     "axios": "^1.7.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

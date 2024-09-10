@@ -1,6 +1,6 @@
 import { del, get, set } from 'idb-keyval'
 import { http, createConfig } from 'wagmi'
-import { celo, mainnet, optimism, sepolia, optimismSepolia, arbitrumSepolia, baseSepolia, berachainTestnetbArtio } from 'wagmi/chains'
+import { mainnet, optimism, sepolia, optimismSepolia, arbitrumSepolia, baseSepolia, berachainTestnetbArtio, zoraSepolia, blastSepolia } from 'wagmi/chains'
 import { walletConnect } from 'wagmi/connectors'
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import {
@@ -36,7 +36,7 @@ const connectors = connectorsForWallets(
 );
 
 export const config = createConfig({
-  chains: [mainnet, sepolia, optimism, celo, optimismSepolia, arbitrumSepolia, baseSepolia, berachainTestnetbArtio],
+  chains: [mainnet, sepolia, optimism, optimismSepolia, arbitrumSepolia, baseSepolia, berachainTestnetbArtio, zoraSepolia, blastSepolia],
   // connectors: [
   //   walletConnect({
   //     projectId: import.meta.env.VITE_WC_PROJECT_ID,
@@ -52,8 +52,9 @@ export const config = createConfig({
     [arbitrumSepolia.id]: http(),
     [baseSepolia.id]: http(),
     [optimism.id]: http(),
-    [celo.id]: http(),
     [berachainTestnetbArtio.id]: http(),
+    [zoraSepolia.id]: http(),
+    [blastSepolia.id]: http(),
   },
 })
 

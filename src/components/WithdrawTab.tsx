@@ -28,6 +28,7 @@ import {
   getLZId,
   chains,
   getLegacyId,
+  chainIds,
 } from "../utils/chainMapping";
 import { NFT, PositionData } from "../CrossChainLendingApp";
 import {
@@ -156,11 +157,11 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="min-w-[200px]">
-                    {Object.entries(selectedNFT?.chainLimits ?? {}).map(
-                      ([chainId2, _]) => (
+                    {chainIds.map(
+                      (chainId2) => (
                         <DropdownMenuItem
                           key={chainId2}
-                          onClick={() => setSelectedChain(chainId2)}
+                          onClick={() => setSelectedChain(chainId2.toString())}
                           className="text-lg py-3"
                         >
                           {getChainName(Number(chainId2))}
