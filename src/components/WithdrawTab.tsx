@@ -30,7 +30,7 @@ import {
   getLegacyId,
   chainIds,
 } from "../utils/chainMapping";
-import { NFT, PositionData } from "../CrossChainLendingApp";
+import { NFT } from "../CrossChainLendingApp";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +55,6 @@ interface WithdrawTabProps {
 const WithdrawTab: React.FC<WithdrawTabProps> = ({
   selectedNFT,
   address,
-  ethBalance,
   ethPrice,
   updateDataCounter,
   setUpdateDataCounter,

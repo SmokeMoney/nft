@@ -14,6 +14,8 @@ import {
   usePublicClient,
   useWriteContract,
 } from "wagmi";
+import { useWriteContracts } from "wagmi/experimental";
+
 import {
   CollectorClientConfig,
   createCollectorClient,
@@ -21,17 +23,45 @@ import {
   CreatorClientConfig,
 } from "@zoralabs/protocol-sdk";
 import { Switch } from "./ui/switch";
+import {
+  getChainLendingAddress,
+  getLZId,
+  getNftAddress,
+} from "@/utils/chainMapping";
+import spendingRawAbi from "../abi/SmokeSpendingContract.abi.json";
+import parseDumbAbis from "../abi/parsedCoreNFTAbi";
+import { backendUrl, NFT } from "@/CrossChainLendingApp";
+import { parseEther } from "viem";
+import axios from "axios";
+import { addressToBytes32 } from "@/utils/addressConversion";
 
-const ZoraTab: React.FC = () => {
+const ZoraTab: React.FC<{
+  selectedNFT: NFT | undefined;
+  updateDataCounter: number;
+  setUpdateDataCounter: any;
+}> = ({ selectedNFT, updateDataCounter, setUpdateDataCounter }) => {
   const chainId = useChainId();
   const publicClient = usePublicClient();
 
   const [mintParameters, setMintParameters] = useState<any>(null);
   const [mintOrCreate, setMintOrCreate] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const { writeContractAsync } = useWriteContract();
-  const { address } = useAccount();
+  const [customMessage, setCustomMessage] = useState<string>("");
 
+  const { writeContractAsync } = useWriteContract();
+  const { writeContractsAsync } = useWriteContracts();
+  const { address } = useAccount();
+  const mintCost = "0.005";
+  const abi = [
+    {
+      stateMutability: "nonpayable",
+      type: "function",
+      inputs: [{ name: "to", type: "address" }],
+      name: "safeMint",
+      outputs: [],
+    },
+  ] as const;
+  const spendingAbi = parseDumbAbis(spendingRawAbi);
   const create1155sSmoke = async () => {
     // set to the chain you want to interact with
     const creatorClient = createCreatorClient({
@@ -85,6 +115,79 @@ const ZoraTab: React.FC = () => {
     setMintParameters(parameters);
   };
 
+  const getBorrowSignature = async () => {
+    if (!address || !selectedNFT) return null;
+
+    try {
+      const response = await axios.post(`${backendUrl}/api/borrow`, {
+        walletAddress: addressToBytes32(address),
+        nftId: selectedNFT.id,
+        amount: parseEther(mintCost).toString(),
+        chainId: getLZId(chainId).toString(),
+      });
+      return {
+        timestamp: response.data.timestamp,
+        nonce: response.data.nonce,
+        signature: response.data.signature as `0x${string}`,
+        status: response.data.status,
+      };
+    } catch (error) {
+      console.error("Error fetching borrow signature:", error);
+      return null;
+    }
+  };
+
+  const handleMint = async () => {
+    if (!selectedNFT) return;
+    const signatureData = await getBorrowSignature();
+    if (!signatureData) {
+      console.error("Failed to get borrow signature");
+      return;
+    }
+    const {
+      timestamp,
+      nonce: signatureNonce,
+      signature,
+      status,
+    } = signatureData;
+
+    if (status === "borrow_approved") {
+      await writeContractsAsync({
+        contracts: [
+          {
+            address: getChainLendingAddress(getLZId(chainId)),
+            abi: spendingAbi,
+            functionName: "borrow",
+            args: [
+              getNftAddress(),
+              BigInt(selectedNFT.id),
+              parseEther(mintCost),
+              BigInt(timestamp),
+              BigInt(120), // signature validity
+              BigInt(signatureNonce),
+              false,
+              signature,
+            ],
+          },
+          {
+            address: "0x119Ea671030FBf79AB93b436D2E20af6ea469a19",
+            abi,
+            functionName: "safeMint",
+            args: [address],
+          },
+        ],
+      });
+      setUpdateDataCounter(updateDataCounter + 1);
+    } else if (status === "not_enough_limit") {
+      console.error("Borrow limit reached");
+      setCustomMessage("You don't have enough limit to borrow");
+      return;
+    } else {
+      setCustomMessage("Unknown error, reach out to us on Discord");
+      return;
+    }
+  };
+
   useEffect(() => {
     if (mintOrCreate) {
       initializeCollectorClient();
@@ -135,6 +238,10 @@ const ZoraTab: React.FC = () => {
             <Button onClick={handleCreate} disabled={!mintParameters}>
               {mintOrCreate ? "Mint" : "Create"}
             </Button>
+            <Button onClick={handleMint} disabled={!mintParameters}>
+              {true ? "Mint" : "Create"}
+            </Button>
+            
           </HStack>
         </Flex>{" "}
         {error && (
@@ -151,6 +258,7 @@ const ZoraTab: React.FC = () => {
             <Text color="red.500">Error: {error}</Text>
           </Box>
         )}
+        {customMessage !== "" ? <>Error: {customMessage}</> : ""}
       </Flex>
     </div>
   );

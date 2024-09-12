@@ -566,7 +566,11 @@ const CrossChainLendingApp: React.FC = () => {
                 />
               )}
               {activeTab === "zora" && (
-                <ZoraTab/>
+                <ZoraTab
+                  selectedNFT={selectedNFT}
+                  updateDataCounter={updateDataCounter}
+                  setUpdateDataCounter={setUpdateDataCounter}
+                />
               )}
             </>
           ) : (
