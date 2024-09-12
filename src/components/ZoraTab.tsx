@@ -29,7 +29,7 @@ import {
   getNftAddress,
 } from "@/utils/chainMapping";
 import spendingRawAbi from "../abi/SmokeSpendingContract.abi.json";
-import parseDumbAbis from "../abi/parsedCoreNFTAbi";
+import parseDumbAbis from "../abi/parsedSpendingAbi";
 import { backendUrl, NFT } from "@/CrossChainLendingApp";
 import { parseEther } from "viem";
 import axios from "axios";
@@ -238,8 +238,8 @@ const ZoraTab: React.FC<{
             <Button onClick={handleCreate} disabled={!mintParameters}>
               {mintOrCreate ? "Mint" : "Create"}
             </Button>
-            <Button onClick={handleMint} disabled={!mintParameters}>
-              {true ? "Mint" : "Create"}
+            <Button onClick={handleMint}>
+              {true ? "Mint NFT" : "Create"}
             </Button>
             
           </HStack>
