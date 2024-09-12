@@ -51,7 +51,7 @@ const ZoraTab: React.FC<{
   const { writeContractAsync } = useWriteContract();
   const { writeContractsAsync } = useWriteContracts();
   const { address } = useAccount();
-  const mintCost = "0.005";
+  const mintCost = "0.002";
   const abi = [
     {
       stateMutability: "nonpayable",
@@ -177,7 +177,7 @@ const ZoraTab: React.FC<{
             ],
           },
           {
-            address: chainId == 84532? "0x4cC92E7cB498be8C66Fcc1e3d6C8763508E48635" : "0x6eA21415e845c323a98d2D7cbFEf65A285080361",
+            address: chainId == 84532? "0x783C0212A29b16391C7d87BD28E74c785143611E" : "0x50DB3331B9A55d4b2dFAEDCbdeC7162f767973Fc",
             abi,
             functionName: "mint",
             args: [],
