@@ -60,6 +60,13 @@ const ZoraTab: React.FC<{
       name: "safeMint",
       outputs: [],
     },
+    {
+      stateMutability: "payable",
+      type: "function",
+      inputs: [],
+      name: "mint",
+      outputs: [],
+    },
   ] as const;
   const spendingAbi = parseDumbAbis(spendingRawAbi);
   const create1155sSmoke = async () => {
@@ -170,10 +177,10 @@ const ZoraTab: React.FC<{
             ],
           },
           {
-            address: "0x119Ea671030FBf79AB93b436D2E20af6ea469a19",
+            address: chainId == 84532? "0x4cC92E7cB498be8C66Fcc1e3d6C8763508E48635" : "0x6eA21415e845c323a98d2D7cbFEf65A285080361",
             abi,
-            functionName: "safeMint",
-            args: [address],
+            functionName: "mint",
+            args: [],
           },
         ],
       });
