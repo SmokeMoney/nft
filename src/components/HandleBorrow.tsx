@@ -37,6 +37,7 @@ const HandleBorrow: React.FC<{
   selectedChain: string;
   updateDataCounter: number;
   setUpdateDataCounter: any;
+  recipientAddress: `0x${string}` | undefined;
 }> = ({
   selectedNFT,
   withdrawAmount,
@@ -44,6 +45,7 @@ const HandleBorrow: React.FC<{
   selectedChain,
   updateDataCounter,
   setUpdateDataCounter,
+  recipientAddress,
 }) => {
   const [gaslessBorrow, setGaslessBorrow] = useState<boolean>(true);
   const [recentBorrowAmount, setRecentBorrowAmount] = useState<string>("");
@@ -175,7 +177,7 @@ const HandleBorrow: React.FC<{
         amount: parseEther(withdrawAmount).toString(),
         timestamp: timestamp,
         chainId: getLZId(chainId).toString(),
-        recipient: address,
+        recipient: recipientAddress??address,
         userSignature: userSignature,
         weth: false,
         repayGas: true,
@@ -219,7 +221,7 @@ const HandleBorrow: React.FC<{
           },
           primaryType: "Borrow",
           message: {
-            borrower: address,
+            borrower: recipientAddress?? address,
             issuerNFT: getNftAddress() as `0x${string}`,
             nftId: BigInt(selectedNFT.id),
             amount: parseEther(withdrawAmount),

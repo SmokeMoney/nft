@@ -69,6 +69,7 @@ import FAQContent from "./components/custom/FAQ";
 import { addressToBytes32 } from "./utils/addressConversion";
 import Header from "./components/Header";
 import ZoraTab from "./components/ZoraTab";
+import NFTTab from "./components/NFTTab";
 
 export const NFT_CONTRACT_ADDRESS = import.meta.env
   .VITE_NFT_CONTRACT_ADDRESS as Address;
@@ -566,7 +567,7 @@ const CrossChainLendingApp: React.FC = () => {
                 />
               )}
               {activeTab === "zora" && (
-                <ZoraTab
+                <NFTTab
                   selectedNFT={selectedNFT}
                   updateDataCounter={updateDataCounter}
                   setUpdateDataCounter={setUpdateDataCounter}

@@ -11,6 +11,10 @@ function abiItemToString(item: any): string {
       return errorToString(item);
     case 'constructor':
       return constructorToString(item);
+    case 'receive':
+      return 'receive() external payable';
+    case 'fallback':
+      return 'fallback() external payable';
     default:
       console.warn(`Unhandled ABI item type: ${item.type}`);
       return '';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { Address } from "viem";
-import { Box, Flex, HStack, Text, VStack } from "@chakra-ui/react";
+import { Box, HStack, Text, VStack } from "@chakra-ui/react";
 import { Button } from "./ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,20 +13,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 import HandleBorrow from "./HandleBorrow";
 import {
   getChainName,
   getLZId,
-  chains,
   getLegacyId,
   chainIds,
 } from "../utils/chainMapping";
@@ -37,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon,  EyeIcon, EyeOffIcon } from "lucide-react";
 import { addressToBytes32 } from "@/utils/addressConversion";
 
 interface WithdrawTabProps {
@@ -68,6 +59,8 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
   const [selectedChain, setSelectedChain] = useState<string>(
     getLZId(chainId).toString() ?? "1"
   );
+  const [showRecipientField, setShowRecipientField] = useState<boolean>(false);
+  const [recipientAddress, setRecipientAddress] = useState<`0x${string}` | undefined>(address);
 
   const walletBorrowPositions = useMemo(() => {
     if (!address) return [];
@@ -217,6 +210,34 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
                   )
                 </Text>
               </Box>
+              <Box>
+                <HStack justify="space-between" className="mb-2">
+                  <Text className="font-semibold text-lg">
+                    Custom Recipient
+                  </Text>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowRecipientField(!showRecipientField)}
+                  >
+                    {showRecipientField ? (
+                      <EyeOffIcon className="h-5 w-5" />
+                    ) : (
+                      <EyeIcon className="h-5 w-5" />
+                    )}
+                  </Button>
+                </HStack>
+                {showRecipientField && (
+                  <Input
+                    type="text"
+                    placeholder="Recipient Address (optional)"
+                    value={recipientAddress}
+                    onChange={(e) => setRecipientAddress(e.target.value as `0x${string}`)}
+                    className="text-lg py-6"
+                  />
+                )}
+              </Box>
+
             </VStack>
           </CardContent>
           <CardFooter>
@@ -227,6 +248,7 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
               selectedChain={selectedChain}
               updateDataCounter={updateDataCounter}
               setUpdateDataCounter={setUpdateDataCounter}
+              recipientAddress={recipientAddress}
             />
           </CardFooter>
         </Card>

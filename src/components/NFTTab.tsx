@@ -16,12 +16,6 @@ import {
 } from "wagmi";
 import { useWriteContracts } from "wagmi/experimental";
 
-import {
-  CollectorClientConfig,
-  createCollectorClient,
-  createCreatorClient,
-  CreatorClientConfig,
-} from "@zoralabs/protocol-sdk";
 import { Switch } from "./ui/switch";
 import {
   getChainLendingAddress,
@@ -34,9 +28,9 @@ import { backendUrl, NFT } from "@/CrossChainLendingApp";
 import { parseEther } from "viem";
 import axios from "axios";
 import { addressToBytes32 } from "@/utils/addressConversion";
-import { useCapabilities } from 'wagmi/experimental'
+import { useCapabilities } from "wagmi/experimental";
 
-const ZoraTab: React.FC<{
+const NFTTab: React.FC<{
   selectedNFT: NFT | undefined;
   updateDataCounter: number;
   setUpdateDataCounter: any;
@@ -44,8 +38,6 @@ const ZoraTab: React.FC<{
   const chainId = useChainId();
   const publicClient = usePublicClient();
 
-  const [mintParameters, setMintParameters] = useState<any>(null);
-  const [mintOrCreate, setMintOrCreate] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [customMessage, setCustomMessage] = useState<string>("");
 
@@ -72,87 +64,34 @@ const ZoraTab: React.FC<{
     },
   ] as const;
   const spendingAbi = parseDumbAbis(spendingRawAbi);
-
-
-
-useEffect(() => {
+  console.log(addressType);
+  useEffect(() => {
     const checkAddressType = async () => {
+      try {
+        const bytecode = await publicClient.getCode({
+          address: address as `0x${string}`,
+        });
 
-try {
-    const bytecode = await publicClient.getCode({ address: address as `0x${string}` });
-    
-    if (bytecode && bytecode !== '0x') {
-      setAddressType('Smart Contract');
-      const { data: capabilities } = useCapabilities();
-      console.log(capabilities);
-    } else {
-      setAddressType('EOA (Externally Owned Account)');
-    }
-  } catch (error) {
-    console.error("Error checking address type:", error);
-    console.log({
-      title: "Error",
-      description: "Failed to check address type. Please try again.",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-  
+        if (bytecode && bytecode !== "0x") {
+          setAddressType("Smart Contract");
+          //   const { data: capabilities } = useCapabilities();
+          //   console.log(capabilities);
+        } else {
+          setAddressType("EOA (Externally Owned Account)");
+        }
+      } catch (error) {
+        console.error("Error checking address type:", error);
+        console.log({
+          title: "Error",
+          description: "Failed to check address type. Please try again.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
     };
     checkAddressType();
   }, [address, chainId, publicClient]);
-
-  const create1155sSmoke = async () => {
-    // set to the chain you want to interact with
-    const creatorClient = createCreatorClient({
-      chainId,
-      publicClient,
-    } as CreatorClientConfig);
-
-    const { parameters, contractAddress } = await creatorClient.create1155({
-      // the contract will be created at a deterministic address
-      contract: {
-        // contract name
-        name: "testContract",
-        // contract metadata uri
-        uri: "ipfs://DUMMY/contract.json",
-      },
-      token: {
-        tokenMetadataURI: "ipfs://DUMMY/token.json",
-      },
-      // account to execute the transaction (the creator)
-      account: address!,
-    });
-
-    console.log(parameters);
-    setMintParameters(parameters);
-    console.log("THE CONTRAC TDD Y IS : ", contractAddress);
-  };
-
-  const initializeCollectorClient = async () => {
-    // set to the chain you want to interact with
-    const collectorClient = createCollectorClient({
-      chainId,
-      publicClient,
-    } as CollectorClientConfig);
-    if (!address) return;
-
-    const { parameters } = await collectorClient.mint({
-      // collection address to mint
-      tokenContract: "0x42F843A68c204884599439480FcFEB937f0C84E7",
-      // quantity of tokens to mint
-      quantityToMint: 1,
-      // can be set to 1155, 721, or premint
-      mintType: "1155",
-      minterAccount: address,
-
-      mintReferral: "0x0C8596Ee50e06Ce710237c9c905D4aB63A132207",
-      tokenId: 1n,
-    });
-
-    setMintParameters(parameters);
-  };
 
   const getBorrowSignature = async () => {
     if (!address || !selectedNFT) return null;
@@ -191,31 +130,51 @@ try {
     } = signatureData;
 
     if (status === "borrow_approved") {
-      await writeContractsAsync({
-        contracts: [
-          {
-            address: getChainLendingAddress(getLZId(chainId)),
-            abi: spendingAbi,
-            functionName: "borrow",
-            args: [
-              getNftAddress(),
-              BigInt(selectedNFT.id),
-              parseEther(mintCost),
-              BigInt(timestamp),
-              BigInt(120), // signature validity
-              BigInt(signatureNonce),
-              false,
-              signature,
+      if (addressType === "Smart Contract") {
+        console.log("inside ");
+        try {
+          const result = await writeContractsAsync({
+            contracts: [
+              {
+                address: getChainLendingAddress(getLZId(chainId)),
+                abi: spendingAbi,
+                functionName: "borrow",
+                args: [
+                  getNftAddress(),
+                  BigInt(selectedNFT.id),
+                  parseEther(mintCost),
+                  BigInt(timestamp),
+                  BigInt(120), // signature validity
+                  BigInt(signatureNonce),
+                  false,
+                  signature,
+                ],
+              },
+              {
+                address:
+                  chainId == 84532
+                    ? "0x4cC92E7cB498be8C66Fcc1e3d6C8763508E48635"
+                    : "0x6eA21415e845c323a98d2D7cbFEf65A285080361",
+                abi,
+                functionName: "mint",
+                args: [],
+              },
             ],
-          },
-          {
-            address: chainId == 84532? "0x4cC92E7cB498be8C66Fcc1e3d6C8763508E48635" : "0x6eA21415e845c323a98d2D7cbFEf65A285080361",
-            abi,
-            functionName: "mint",
-            args: [],
-          },
-        ],
-      });
+          });
+          console.log(result);
+        } catch (err: unknown) {
+            console.log(err);
+          if (err instanceof Error) {
+            setError(err.message);
+          } else if (typeof err === "string") {
+            setError(err);
+          } else {
+            setError("An unknown error occurred during the transaction");
+          }
+        }
+      } else if (addressType === "EOA (Externally Owned Account)") {
+        console.log("MINTING IS HARD");
+      }
       setUpdateDataCounter(updateDataCounter + 1);
     } else if (status === "not_enough_limit") {
       console.error("Borrow limit reached");
@@ -224,31 +183,6 @@ try {
     } else {
       setCustomMessage("Unknown error, reach out to us on Discord");
       return;
-    }
-  };
-
-  useEffect(() => {
-    if (mintOrCreate) {
-      initializeCollectorClient();
-    } else {
-      create1155sSmoke();
-    }
-  }, [chainId, publicClient, mintOrCreate]);
-
-  const handleCreate = async () => {
-    if (mintParameters) {
-      try {
-        await writeContractAsync(mintParameters);
-        setError(null); // Clear any previous errors
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else if (typeof err === "string") {
-          setError(err);
-        } else {
-          setError("An unknown error occurred during the transaction");
-        }
-      }
     }
   };
 
@@ -270,17 +204,10 @@ try {
           </HoverCard>
           <Separator orientation={true ? "horizontal" : "vertical"} />
           <HStack>
-            <Switch checked={mintOrCreate} onCheckedChange={setMintOrCreate} />
             <Text>ETH</Text>
             <Text>USD</Text>
             <Text>( ETH: $5000 )</Text>
-            <Button onClick={handleCreate} disabled={!mintParameters}>
-              {mintOrCreate ? "Mint" : "Create"}
-            </Button>
-            <Button onClick={handleMint}>
-              {true ? "Mint NFT" : "Create"}
-            </Button>
-            
+            <Button onClick={handleMint}>{true ? "Mint NFT" : "Create"}</Button>
           </HStack>
         </Flex>{" "}
         {error && (
@@ -303,4 +230,4 @@ try {
   );
 };
 
-export default ZoraTab;
+export default NFTTab;
