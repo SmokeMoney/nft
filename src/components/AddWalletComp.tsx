@@ -78,9 +78,11 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
   }, [address]);
 
   useEffect(() => {
+    // const defaultAutogasChains = ['40231', '40161', '40232', '40245', '40287', '40243'];
+    const defaultAutogasChains = ['40161', '40232', '40287', '40243'];
     // Initialize autogasConfig with false for each chain
     const initialConfig = chainList.reduce((acc, chain) => {
-      acc[chain] = chain == "40161" ? false: true;
+      acc[chain] = !defaultAutogasChains.includes(chain);
       return acc;
     }, {} as Record<string, boolean>);
     setAutogasConfig(initialConfig);
@@ -98,7 +100,7 @@ const AddWalletComp: React.FC<AddWalletProps> = ({
     const autogasConfigArray = chainList.map((chain) => autogasConfig[chain]);
 
     console.log("comparing addyes");
-    console.log(walletAddress);
+    console.log(chainList);
     console.log(addressToBytes32(walletAddress));
 
     writeContract({

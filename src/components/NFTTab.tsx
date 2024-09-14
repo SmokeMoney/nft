@@ -158,6 +158,7 @@ const NFTTab: React.FC<{
                 abi,
                 functionName: "mint",
                 args: [],
+                value: parseEther('0.002'),
               },
             ],
           });

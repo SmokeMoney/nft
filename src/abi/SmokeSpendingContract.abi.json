@@ -144,6 +144,11 @@
         "internalType": "uint256"
       },
       {
+        "name": "recipient",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "weth",
         "type": "bool",
         "internalType": "bool"
@@ -152,6 +157,11 @@
         "name": "signature",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "integrator",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -166,6 +176,11 @@
         "type": "tuple",
         "internalType": "struct SmokeSpendingContract.BorrowParams",
         "components": [
+          {
+            "name": "borrower",
+            "type": "address",
+            "internalType": "address"
+          },
           {
             "name": "issuerNFT",
             "type": "address",
@@ -197,12 +212,12 @@
             "internalType": "uint256"
           },
           {
-            "name": "weth",
-            "type": "bool",
-            "internalType": "bool"
+            "name": "repayGas",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            "name": "repayGas",
+            "name": "weth",
             "type": "bool",
             "internalType": "bool"
           },
@@ -210,6 +225,11 @@
             "name": "recipient",
             "type": "address",
             "internalType": "address"
+          },
+          {
+            "name": "integrator",
+            "type": "uint256",
+            "internalType": "uint256"
           }
         ]
       },
@@ -551,6 +571,19 @@
   },
   {
     "type": "function",
+    "name": "maxRepayGas",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "owner",
     "inputs": [],
     "outputs": [
@@ -805,6 +838,19 @@
   },
   {
     "type": "function",
+    "name": "setmaxRepayGasLimit",
+    "inputs": [
+      {
+        "name": "_newRepayGas",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "smokeFees",
     "inputs": [],
     "outputs": [
@@ -873,29 +919,11 @@
         "name": "wallet",
         "type": "address",
         "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "triggerAutogasSpike",
-    "inputs": [
-      {
-        "name": "issuerNFT",
-        "type": "address",
-        "internalType": "address"
       },
       {
-        "name": "nftId",
+        "name": "repayGas",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -1046,6 +1074,12 @@
         "type": "address",
         "indexed": false,
         "internalType": "address"
+      },
+      {
+        "name": "integrator",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -1166,6 +1200,37 @@
   },
   {
     "type": "event",
+    "name": "PayedBackIssuer",
+    "inputs": [
+      {
+        "name": "issuerNFT",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "nftId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "wallet",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "PoolDeposited",
     "inputs": [
       {
@@ -1232,33 +1297,6 @@
       }
     ],
     "anonymous": false
-  },
-  {
-    "type": "error",
-    "name": "ECDSAInvalidSignature",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ECDSAInvalidSignatureLength",
-    "inputs": [
-      {
-        "name": "length",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ECDSAInvalidSignatureS",
-    "inputs": [
-      {
-        "name": "s",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
   },
   {
     "type": "error",

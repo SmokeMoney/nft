@@ -513,12 +513,12 @@ const CrossChainLendingApp: React.FC = () => {
                     </Button>
                     <Button
                       className="fontSizeLarge"
-                      onClick={() => setActiveTab("zora")}
+                      onClick={() => setActiveTab("nft")}
                       variant={
-                        activeTab === "repay" ? "destructive" : "default"
+                        activeTab === "nft" ? "destructive" : "default"
                       }
                     >
-                      Zora
+                      NFT
                     </Button>
                   </HStack>
                 </Flex>
@@ -566,7 +566,7 @@ const CrossChainLendingApp: React.FC = () => {
                   isMobile={isMobile}
                 />
               )}
-              {activeTab === "zora" && (
+              {activeTab === "nft" && (
                 <NFTTab
                   selectedNFT={selectedNFT}
                   updateDataCounter={updateDataCounter}

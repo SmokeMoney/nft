@@ -151,6 +151,7 @@ const HandleBorrow: React.FC<{
         nftId: selectedNFT.id,
         amount: parseEther(withdrawAmount).toString(),
         chainId: getLZId(chainId).toString(),
+        recipient: addressToBytes32(recipientAddress??address)
       });
       return {
         timestamp: response.data.timestamp,
@@ -180,7 +181,8 @@ const HandleBorrow: React.FC<{
         recipient: recipientAddress??address,
         userSignature: userSignature,
         weth: false,
-        repayGas: true,
+        repayGas: 0,
+        integrator: 0,
       });
       return response.data;
     } catch (error) {
@@ -217,17 +219,19 @@ const HandleBorrow: React.FC<{
               { name: "timestamp", type: "uint256" },
               { name: "signatureValidity", type: "uint256" },
               { name: "nonce", type: "uint256" },
+              { name: "recipient", type: "address" },
             ],
           },
           primaryType: "Borrow",
           message: {
-            borrower: recipientAddress?? address,
+            borrower: address,
             issuerNFT: getNftAddress() as `0x${string}`,
             nftId: BigInt(selectedNFT.id),
             amount: parseEther(withdrawAmount),
             timestamp,
             signatureValidity,
             nonce: borrowNonce,
+            recipient: recipientAddress?? address,
           },
         });
         if (typeof signature === "string") {
@@ -330,8 +334,10 @@ const HandleBorrow: React.FC<{
             BigInt(timestamp),
             BigInt(120), // signature validity
             BigInt(signatureNonce),
+            recipientAddress??address,
             false,
             signature,
+            0
           ],
         });
         setUpdateDataCounter(updateDataCounter + 1);

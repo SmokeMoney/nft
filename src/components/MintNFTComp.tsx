@@ -80,7 +80,7 @@ const MintNFTComp: React.FC<{
       address: NFT_CONTRACT_ADDRESS,
       abi: coreNFTAbi,
       functionName: "mint",
-      args: [],
+      args: [0],
       value: parseEther("0.02"),
     });
   }
