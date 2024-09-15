@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Flex, HStack, Text } from "@chakra-ui/react";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -12,12 +12,15 @@ import {
   useAccount,
   useChainId,
   usePublicClient,
+  useReadContract,
+  useSignTypedData,
   useWriteContract,
 } from "wagmi";
 import { useWriteContracts } from "wagmi/experimental";
 
 import { Switch } from "./ui/switch";
 import {
+  getChainExplorer,
   getChainLendingAddress,
   getLZId,
   getNftAddress,
@@ -29,6 +32,14 @@ import { parseEther } from "viem";
 import axios from "axios";
 import { addressToBytes32 } from "@/utils/addressConversion";
 import { useCapabilities } from "wagmi/experimental";
+import {
+  getBorrowSignature,
+  requestGaslessBorrow,
+  requestGaslessMinting,
+} from "@/utils/borrowUtils";
+import { useToast } from "./ui/use-toast";
+import { ToastAction } from "./ui/toast";
+import { Toaster } from "./ui/toaster";
 
 const NFTTab: React.FC<{
   selectedNFT: NFT | undefined;
@@ -40,11 +51,18 @@ const NFTTab: React.FC<{
 
   const [error, setError] = useState<string | null>(null);
   const [customMessage, setCustomMessage] = useState<string>("");
+  const [borrowNonce, setBorrowNonce] = useState<bigint | undefined>(undefined);
 
   const { writeContractAsync } = useWriteContract();
+  const { toast } = useToast();
   const { writeContractsAsync } = useWriteContracts();
   const { address } = useAccount();
+  const { signTypedDataAsync } = useSignTypedData();
   const [addressType, setAddressType] = useState<string | null>(null);
+
+  const [lendingAddress, setLendingAddress] = useState<
+    `0x${string}` | undefined
+  >(undefined);
 
   const mintCost = "0.002";
   const abi = [
@@ -93,45 +111,85 @@ const NFTTab: React.FC<{
     checkAddressType();
   }, [address, chainId, publicClient]);
 
-  const getBorrowSignature = async () => {
-    if (!address || !selectedNFT) return null;
-
+  useEffect(() => {
     try {
-      const response = await axios.post(`${backendUrl}/api/borrow`, {
-        walletAddress: addressToBytes32(address),
-        nftId: selectedNFT.id,
-        amount: parseEther(mintCost).toString(),
-        chainId: getLZId(chainId).toString(),
-      });
-      return {
-        timestamp: response.data.timestamp,
-        nonce: response.data.nonce,
-        signature: response.data.signature as `0x${string}`,
-        status: response.data.status,
-      };
+      const address2 = getChainLendingAddress(getLZId(chainId));
+      setLendingAddress(address2);
     } catch (error) {
-      console.error("Error fetching borrow signature:", error);
-      return null;
+      console.error("Error getting lending address:", error);
+      setLendingAddress(undefined);
     }
-  };
+  }, [chainId]);
+
+  const { data: nonce, refetch: refetchNonce } = useReadContract({
+    address: lendingAddress,
+    abi: spendingRawAbi,
+    functionName: "getCurrentNonce",
+    args: [
+      getNftAddress(),
+      selectedNFT?.id ? BigInt(selectedNFT.id) : BigInt(0),
+    ],
+  });
+
+  useEffect(() => {
+    if (nonce !== null && nonce !== undefined) {
+      setBorrowNonce(BigInt(nonce.toString()));
+    } else {
+      setBorrowNonce(undefined);
+    }
+  }, [nonce]);
+
+  const refreshNonce = useCallback(() => {
+    if (selectedNFT?.id && lendingAddress) {
+      refetchNonce();
+    }
+  }, [selectedNFT?.id, lendingAddress, refetchNonce]);
+
+  useEffect(() => {
+    // Set up the interval to refresh the nonce every 30 seconds
+    const intervalId = setInterval(refreshNonce, 3000);
+
+    // Clean up the interval on component unmount
+    return () => clearInterval(intervalId);
+  }, [refreshNonce]);
+
+  useEffect(() => {
+    // Initial nonce fetch when component mounts or dependencies change
+    refreshNonce();
+  }, [refreshNonce]);
+
+  useEffect(() => {
+    if (selectedNFT?.id) {
+      refetchNonce();
+    } else {
+      setBorrowNonce(undefined);
+    }
+  }, [selectedNFT?.id, refetchNonce]);
 
   const handleMint = async () => {
-    if (!selectedNFT) return;
-    const signatureData = await getBorrowSignature();
-    if (!signatureData) {
-      console.error("Failed to get borrow signature");
-      return;
-    }
-    const {
-      timestamp,
-      nonce: signatureNonce,
-      signature,
-      status,
-    } = signatureData;
+    if (addressType === "Smart Contract") {
+      console.log("inside ");
 
-    if (status === "borrow_approved") {
-      if (addressType === "Smart Contract") {
-        console.log("inside ");
+      if (!address || !selectedNFT) return;
+      const signatureData = await getBorrowSignature(
+        addressToBytes32(address),
+        selectedNFT.id,
+        parseEther(mintCost).toString(),
+        getLZId(chainId).toString(),
+        addressToBytes32(address)
+      );
+      if (!signatureData) {
+        console.error("Failed to get borrow signature");
+        return;
+      }
+      const {
+        timestamp,
+        nonce: signatureNonce,
+        signature,
+        status,
+      } = signatureData;
+
+      if (status === "borrow_approved") {
         try {
           const result = await writeContractsAsync({
             contracts: [
@@ -146,25 +204,27 @@ const NFTTab: React.FC<{
                   BigInt(timestamp),
                   BigInt(120), // signature validity
                   BigInt(signatureNonce),
+                  address,
                   false,
                   signature,
+                  0,
                 ],
               },
               {
                 address:
                   chainId == 84532
-                    ? "0x4cC92E7cB498be8C66Fcc1e3d6C8763508E48635"
+                    ? "0xD1F1Fc828205B65290093939c279E21be59c8916"
                     : "0x6eA21415e845c323a98d2D7cbFEf65A285080361",
                 abi,
                 functionName: "mint",
                 args: [],
-                value: parseEther('0.002'),
+                value: parseEther("0.002"),
               },
             ],
           });
           console.log(result);
         } catch (err: unknown) {
-            console.log(err);
+          console.log(err);
           if (err instanceof Error) {
             setError(err.message);
           } else if (typeof err === "string") {
@@ -173,20 +233,111 @@ const NFTTab: React.FC<{
             setError("An unknown error occurred during the transaction");
           }
         }
-      } else if (addressType === "EOA (Externally Owned Account)") {
-        console.log("MINTING IS HARD");
+        setUpdateDataCounter(updateDataCounter + 1);
+      } else if (status === "not_enough_limit") {
+        console.error("Borrow limit reached");
+        setCustomMessage("You don't have enough limit to borrow");
+        return;
+      } else {
+        setCustomMessage("Unknown error, reach out to us on Discord");
+        return;
       }
-      setUpdateDataCounter(updateDataCounter + 1);
-    } else if (status === "not_enough_limit") {
-      console.error("Borrow limit reached");
-      setCustomMessage("You don't have enough limit to borrow");
-      return;
-    } else {
-      setCustomMessage("Unknown error, reach out to us on Discord");
-      return;
+    } else if (addressType === "EOA (Externally Owned Account)") {
+      const timestamp = BigInt(Math.floor(Date.now() / 1000));
+
+      const signatureValidity = BigInt(1200); // 2 minutes
+      try {
+        if (!address || borrowNonce == undefined || !selectedNFT) return null;
+        const signature = await signTypedDataAsync({
+          domain: {
+            name: "SmokeSpendingContract",
+            version: "1",
+            chainId: chainId,
+            verifyingContract: getChainLendingAddress(getLZId(chainId)),
+          },
+          types: {
+            Borrow: [
+              { name: "borrower", type: "address" },
+              { name: "issuerNFT", type: "address" },
+              { name: "nftId", type: "uint256" },
+              { name: "amount", type: "uint256" },
+              { name: "timestamp", type: "uint256" },
+              { name: "signatureValidity", type: "uint256" },
+              { name: "nonce", type: "uint256" },
+              { name: "recipient", type: "address" },
+            ],
+          },
+          primaryType: "Borrow",
+          message: {
+            borrower: address,
+            issuerNFT: getNftAddress() as `0x${string}`,
+            nftId: BigInt(selectedNFT.id),
+            amount: parseEther(mintCost),
+            timestamp,
+            signatureValidity,
+            nonce: borrowNonce,
+            recipient: "0x57148278E856654D2930b4BAD7517a3f261cF67c",
+          },
+        });
+        if (typeof signature === "string") {
+          if (!address || !selectedNFT) return null;
+
+          const result = await requestGaslessMinting(
+            address,
+            selectedNFT.id,
+            parseEther(mintCost).toString(),
+            timestamp.toString(),
+            getLZId(chainId).toString(),
+            "0x57148278E856654D2930b4BAD7517a3f261cF67c",
+            signature,
+            false,
+            0
+          );
+          console.log("MINTING IS HARD", result);
+          if (result) {
+            console.log("Gasless borrow transaction hash:", result);
+            if (result.status === "borrow_approved") {
+              setCustomMessage("");
+              toast({
+                description: "Gasless borrow initiated successfully",
+                action: (
+                  <ToastAction altText="Try again">
+                    {" "}
+                    <a
+                      href={
+                        getChainExplorer(getLZId(chainId)) + "tx/" + result.hash
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()} // Prevent toast from closing
+                    >
+                      View on Explorer
+                    </a>
+                  </ToastAction>
+                ),
+              });
+            } else {
+              setCustomMessage(
+                result.status === "not_enough_limit" //1
+                  ? "Borrow Failed: You don't have enough borrow limit" //1
+                  : result.status === "insufficient_issuer_balance" //2
+                  ? "Borrow unavailable right now" //2
+                  : result.status === "invalid_signature" //3
+                  ? "Your previous txn was still processing, try again. If it repeats, reach out via Discord. " //3
+                  : "Unknown error, please reach out via Discord"
+              ); //0);
+            }
+          } else {
+            throw new Error(
+              "Failed to get transaction hash from gasless borrow"
+            );
+          }
+        }
+      } catch {
+        console.log("asdf");
+      }
     }
   };
-
   return (
     <div className="fontSizeLarge">
       <Flex justify="center" align="stretch" w="full" px={4}>
@@ -226,9 +377,9 @@ const NFTTab: React.FC<{
           </Box>
         )}
         {customMessage !== "" ? <>Error: {customMessage}</> : ""}
+        <Toaster />
       </Flex>
     </div>
   );
 };
-
 export default NFTTab;

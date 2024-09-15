@@ -29,6 +29,8 @@ import { VStack, Text, HStack, Flex } from "@chakra-ui/react";
 import { NFT, backendUrl } from "@/CrossChainLendingApp";
 import { cn } from "@/lib/utils";
 import { addressToBytes32 } from "@/utils/addressConversion";
+import { getBorrowSignature, requestGaslessBorrow } from "@/utils/borrowUtils";
+
 
 const HandleBorrow: React.FC<{
   selectedNFT: NFT | undefined;
@@ -51,7 +53,7 @@ const HandleBorrow: React.FC<{
   const [recentBorrowAmount, setRecentBorrowAmount] = useState<string>("");
   const [customMessage, setCustomMessage] = useState<string>("");
   const [recentHash, setRecentHash] = useState<string>("");
-  
+
   const [borrowNonce, setBorrowNonce] = useState<bigint | undefined>(undefined);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -142,54 +144,7 @@ const HandleBorrow: React.FC<{
     setIsConfirmed(false);
   }, [chainId, gaslessBorrow]);
 
-  const getBorrowSignature = async () => {
-    if (!address || !selectedNFT || !withdrawAmount) return null;
 
-    try {
-      const response = await axios.post(`${backendUrl}/api/borrow`, {
-        walletAddress: addressToBytes32(address),
-        nftId: selectedNFT.id,
-        amount: parseEther(withdrawAmount).toString(),
-        chainId: getLZId(chainId).toString(),
-        recipient: addressToBytes32(recipientAddress??address)
-      });
-      return {
-        timestamp: response.data.timestamp,
-        nonce: response.data.nonce,
-        signature: response.data.signature as `0x${string}`,
-        status: response.data.status,
-      };
-    } catch (error) {
-      console.error("Error fetching borrow signature:", error);
-      return null;
-    }
-  };
-
-  const requestGaslessBorrow = async (
-    timestamp: string,
-    userSignature: void | string
-  ) => {
-    if (!address || !selectedNFT || !withdrawAmount) return null;
-
-    try {
-      const response = await axios.post(`${backendUrl}/api/borrow-gasless`, {
-        signer: address,
-        nftId: selectedNFT.id,
-        amount: parseEther(withdrawAmount).toString(),
-        timestamp: timestamp,
-        chainId: getLZId(chainId).toString(),
-        recipient: recipientAddress??address,
-        userSignature: userSignature,
-        weth: false,
-        repayGas: 0,
-        integrator: 0,
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching borrow signature:", error);
-      return null;
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,7 +186,7 @@ const HandleBorrow: React.FC<{
             timestamp,
             signatureValidity,
             nonce: borrowNonce,
-            recipient: recipientAddress?? address,
+            recipient: recipientAddress ?? address,
           },
         });
         if (typeof signature === "string") {
@@ -239,9 +194,18 @@ const HandleBorrow: React.FC<{
             title: "Processing gasless borrow...",
             description: "processing",
           });
+          if (!address || !selectedNFT || !withdrawAmount) return null;
+          
           const result = await requestGaslessBorrow(
+            address,
+            selectedNFT.id,
+            parseEther(withdrawAmount).toString(),
             timestamp.toString(),
-            signature
+            getLZId(chainId).toString(),
+            recipientAddress ?? address,
+            signature,
+            false,
+            0,
           );
 
           setUpdateDataCounter(updateDataCounter + 1);
@@ -308,7 +272,16 @@ const HandleBorrow: React.FC<{
         return;
       }
     } else if (!gaslessBorrow && borrowNonce !== undefined) {
-      const signatureData = await getBorrowSignature();
+      if (!address || !selectedNFT || !withdrawAmount) return null;
+
+      const signatureData = await getBorrowSignature(
+        addressToBytes32(address),
+        selectedNFT.id,
+        parseEther(withdrawAmount).toString(),
+        getLZId(chainId).toString(),
+        addressToBytes32(recipientAddress ?? address)
+      );
+
       if (!signatureData) {
         console.error("Failed to get borrow signature");
         return;
@@ -334,10 +307,10 @@ const HandleBorrow: React.FC<{
             BigInt(timestamp),
             BigInt(120), // signature validity
             BigInt(signatureNonce),
-            recipientAddress??address,
+            recipientAddress ?? address,
             false,
             signature,
-            0
+            0,
           ],
         });
         setUpdateDataCounter(updateDataCounter + 1);
@@ -349,8 +322,7 @@ const HandleBorrow: React.FC<{
         setCustomMessage("Unknown error, reach out to us on Discord");
         return;
       }
-    }
-    else {
+    } else {
       console.log("ALL HELL BROEKK LAOSKEA");
       setCustomMessage("Please wait a few seconds before another borrow");
     }
@@ -364,9 +336,11 @@ const HandleBorrow: React.FC<{
     }
     if (error) {
       console.log(error.message);
-      setCustomMessage(error.message.includes("ERC20: burn amount exceeds balance")
-      ? "Borrow unavailable right now"
-      : "Unknown reason");
+      setCustomMessage(
+        error.message.includes("ERC20: burn amount exceeds balance")
+          ? "Borrow unavailable right now"
+          : "Unknown reason"
+      );
     }
   }, [isConfirmed, withdrawAmount, error]);
 
@@ -397,7 +371,7 @@ const HandleBorrow: React.FC<{
                 ? "Confirming..."
                 : "Withdraw"}
             </Button>
-          </form> 
+          </form>
         ) : (
           <Button
             className="fontSizeLarge"
