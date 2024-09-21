@@ -19,9 +19,9 @@ const NFTList: React.FC<{ nfts: NFT[] }> = ({ nfts }) => {
       {nfts.map((nft) => (
         <div key={nft.id} className="flex items-center p-4 border rounded-lg" style={{justifyContent:'space-evenly'}}>
           <img src={nft.image} alt={nft.name} className="w-32 h-32 rounded-full" />
-          <div>
+          <span>
             {nft.chain}
-          </div>
+          </span>
           <Button
             onClick={() => handleMint(nft.id)}
           >
