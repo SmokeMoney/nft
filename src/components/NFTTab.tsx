@@ -40,6 +40,7 @@ import {
 import { useToast } from "./ui/use-toast";
 import { ToastAction } from "./ui/toast";
 import { Toaster } from "./ui/toaster";
+import NFTList from "./NFTList";
 
 const NFTTab: React.FC<{
   selectedNFT: NFT | undefined;
@@ -338,6 +339,16 @@ const NFTTab: React.FC<{
       }
     }
   };
+
+  const nfts = [
+    { id: '1', name: 'Cool NFT', image: '/smoke.gif', chain: 'Ethereum' },
+    { id: '2', name: 'Awesome NFT', image: '/smoke3.gif', chain: 'Arbitrum' },
+    { id: '3', name: 'Super NFT', image: '/smoke2.gif', chain: 'Optimism' },
+    { id: '4', name: 'Super2 NFT', image: '/smoke2.gif', chain: 'Base' },
+    { id: '5', name: 'Super 3NFT', image: '/smoke2.gif', chain: 'Zora' },
+    { id: '6', name: 'Super4 NFT', image: '/smoke2.gif', chain: 'Blast' },
+  ];
+
   return (
     <div className="fontSizeLarge">
       <Flex justify="center" align="stretch" w="full" px={4}>
@@ -379,6 +390,10 @@ const NFTTab: React.FC<{
         {customMessage !== "" ? <>Error: {customMessage}</> : ""}
         <Toaster />
       </Flex>
+      <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">NFT List</h1>
+      <NFTList nfts={nfts} />
+    </div>
     </div>
   );
 };
