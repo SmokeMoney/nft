@@ -33,6 +33,7 @@ import { addressToBytes32 } from "@/utils/addressConversion";
 
 interface WithdrawTabProps {
   selectedNFT: NFT | undefined;
+  borrowNonce: bigint | undefined;
   address: Address | undefined;
   ethBalance: string;
   ethPrice: string;
@@ -45,6 +46,7 @@ interface WithdrawTabProps {
 
 const WithdrawTab: React.FC<WithdrawTabProps> = ({
   selectedNFT,
+  borrowNonce,
   address,
   ethPrice,
   updateDataCounter,
@@ -243,6 +245,7 @@ const WithdrawTab: React.FC<WithdrawTabProps> = ({
           <CardFooter>
             <HandleBorrow
               selectedNFT={selectedNFT}
+              borrowNonce={borrowNonce}
               withdrawAmount={withdrawAmount}
               chainId={chainId}
               selectedChain={selectedChain}

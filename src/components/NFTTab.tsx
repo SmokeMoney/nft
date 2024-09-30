@@ -1,71 +1,64 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Box, Flex, HStack, Text } from "@chakra-ui/react";
-import { Separator } from "@/components/ui/separator";
-import {
-  HoverCard,
-  HoverCardTrigger,
-  HoverCardContent,
-} from "@/components/ui/hover-card";
+import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
+import parseDumbAbis from "@/abi/parsedSpendingAbi";
+import { useCapabilities } from "wagmi/experimental";
 
+import spendingRawAbi from "../abi/SmokeSpendingContract.abi.json";
 import {
   useAccount,
   useChainId,
   usePublicClient,
-  useReadContract,
   useSignTypedData,
-  useWriteContract,
 } from "wagmi";
-import { useWriteContracts } from "wagmi/experimental";
-
-import { Switch } from "./ui/switch";
+import { NFT } from "@/types";
+import { getBorrowSignature, requestGaslessMinting } from "@/utils/borrowUtils";
+import { addressToBytes32 } from "@/utils/addressConversion";
+import { parseEther } from "viem";
 import {
   getChainExplorer,
   getChainLendingAddress,
   getLZId,
   getNftAddress,
 } from "@/utils/chainMapping";
-import spendingRawAbi from "../abi/SmokeSpendingContract.abi.json";
-import parseDumbAbis from "../abi/parsedSpendingAbi";
-import { backendUrl, NFT } from "@/CrossChainLendingApp";
-import { parseEther } from "viem";
-import axios from "axios";
-import { addressToBytes32 } from "@/utils/addressConversion";
-import { useCapabilities } from "wagmi/experimental";
-import {
-  getBorrowSignature,
-  requestGaslessBorrow,
-  requestGaslessMinting,
-} from "@/utils/borrowUtils";
+import { useWriteContracts } from "wagmi/experimental";
+import { Box, SimpleGrid, Text } from "@chakra-ui/react";
 import { useToast } from "./ui/use-toast";
 import { ToastAction } from "./ui/toast";
-import { Toaster } from "./ui/toaster";
-import NFTList from "./NFTList";
+
+interface NFTDemo {
+  id: string;
+  name: string;
+  image: string;
+  chain: string;
+}
 
 const NFTTab: React.FC<{
   selectedNFT: NFT | undefined;
   updateDataCounter: number;
   setUpdateDataCounter: any;
-}> = ({ selectedNFT, updateDataCounter, setUpdateDataCounter }) => {
-  const chainId = useChainId();
-  const publicClient = usePublicClient();
-
-  const [error, setError] = useState<string | null>(null);
+  borrowNonce: bigint | undefined;
+  isMobile: boolean;
+}> = ({
+  selectedNFT,
+  updateDataCounter,
+  setUpdateDataCounter,
+  borrowNonce,
+  isMobile,
+}) => {
+  const { data: capabilities } = useCapabilities();
+  // console.log(capabilities);
   const [customMessage, setCustomMessage] = useState<string>("");
-  const [borrowNonce, setBorrowNonce] = useState<bigint | undefined>(undefined);
 
-  const { writeContractAsync } = useWriteContract();
   const { toast } = useToast();
-  const { writeContractsAsync } = useWriteContracts();
-  const { address } = useAccount();
-  const { signTypedDataAsync } = useSignTypedData();
+  const [error, setError] = useState<string | null>(null);
   const [addressType, setAddressType] = useState<string | null>(null);
 
-  const [lendingAddress, setLendingAddress] = useState<
-    `0x${string}` | undefined
-  >(undefined);
-
+  const { address } = useAccount();
+  const chainId = useChainId();
+  const publicClient = usePublicClient();
   const mintCost = "0.002";
+  const { writeContractsAsync } = useWriteContracts();
+  const { signTypedDataAsync } = useSignTypedData();
   const abi = [
     {
       stateMutability: "nonpayable",
@@ -82,8 +75,7 @@ const NFTTab: React.FC<{
       outputs: [],
     },
   ] as const;
-  const spendingAbi = parseDumbAbis(spendingRawAbi);
-  console.log(addressType);
+
   useEffect(() => {
     const checkAddressType = async () => {
       try {
@@ -112,62 +104,9 @@ const NFTTab: React.FC<{
     checkAddressType();
   }, [address, chainId, publicClient]);
 
-  useEffect(() => {
-    try {
-      const address2 = getChainLendingAddress(getLZId(chainId));
-      setLendingAddress(address2);
-    } catch (error) {
-      console.error("Error getting lending address:", error);
-      setLendingAddress(undefined);
-    }
-  }, [chainId]);
-
-  const { data: nonce, refetch: refetchNonce } = useReadContract({
-    address: lendingAddress,
-    abi: spendingRawAbi,
-    functionName: "getCurrentNonce",
-    args: [
-      getNftAddress(),
-      selectedNFT?.id ? BigInt(selectedNFT.id) : BigInt(0),
-    ],
-  });
-
-  useEffect(() => {
-    if (nonce !== null && nonce !== undefined) {
-      setBorrowNonce(BigInt(nonce.toString()));
-    } else {
-      setBorrowNonce(undefined);
-    }
-  }, [nonce]);
-
-  const refreshNonce = useCallback(() => {
-    if (selectedNFT?.id && lendingAddress) {
-      refetchNonce();
-    }
-  }, [selectedNFT?.id, lendingAddress, refetchNonce]);
-
-  useEffect(() => {
-    // Set up the interval to refresh the nonce every 30 seconds
-    const intervalId = setInterval(refreshNonce, 3000);
-
-    // Clean up the interval on component unmount
-    return () => clearInterval(intervalId);
-  }, [refreshNonce]);
-
-  useEffect(() => {
-    // Initial nonce fetch when component mounts or dependencies change
-    refreshNonce();
-  }, [refreshNonce]);
-
-  useEffect(() => {
-    if (selectedNFT?.id) {
-      refetchNonce();
-    } else {
-      setBorrowNonce(undefined);
-    }
-  }, [selectedNFT?.id, refetchNonce]);
-
+  const spendingAbi = parseDumbAbis(spendingRawAbi);
   const handleMint = async () => {
+    console.log("asdf");
     if (addressType === "Smart Contract") {
       console.log("inside ");
 
@@ -341,59 +280,61 @@ const NFTTab: React.FC<{
   };
 
   const nfts = [
-    { id: '1', name: 'Cool NFT', image: '/smoke.gif', chain: 'Ethereum' },
-    { id: '2', name: 'Awesome NFT', image: '/smoke3.gif', chain: 'Arbitrum' },
-    { id: '3', name: 'Super NFT', image: '/smoke2.gif', chain: 'Optimism' },
-    { id: '4', name: 'Super2 NFT', image: '/smoke2.gif', chain: 'Base' },
-    { id: '5', name: 'Super 3NFT', image: '/smoke2.gif', chain: 'Zora' },
-    { id: '6', name: 'Super4 NFT', image: '/smoke2.gif', chain: 'Blast' },
+    { id: "1", name: "ETH NFT", image: "/smoke_eth.png", chain: "Ethereum" },
+    { id: "2", name: "ARB NFT", image: "/smoke_arb.png", chain: "Arbitrum" },
+    { id: "3", name: "OPT NFT", image: "/smoke_opt.png", chain: "Optimism" },
+    { id: "4", name: "BASE NFT", image: "/smoke_base.png", chain: "Base" },
+    { id: "5", name: "ZORA 3NFT", image: "/smoke_zora.png", chain: "Zora" },
+    { id: "6", name: "BLAST NFT", image: "/smoke_blast.png", chain: "Blast" },
   ];
 
   return (
     <div className="fontSizeLarge">
-      <Flex justify="center" align="stretch" w="full" px={4}>
-        <Flex
-          direction={true ? "column" : "row"}
-          justify="center"
-          alignItems="center"
-          gap={2}
-          w="full"
-          px={40}
-          py={8}
-        >
-          <HoverCard>
-            <HoverCardTrigger asChild></HoverCardTrigger>
-            <HoverCardContent className="hover-card-content"></HoverCardContent>
-          </HoverCard>
-          <Separator orientation={true ? "horizontal" : "vertical"} />
-          <HStack>
-            <Text>ETH</Text>
-            <Text>USD</Text>
-            <Text>( ETH: $5000 )</Text>
-            <Button onClick={handleMint}>{true ? "Mint NFT" : "Create"}</Button>
-          </HStack>
-        </Flex>{" "}
-        {error && (
-          <Box
-            mt={2}
-            maxHeight="100px"
-            overflowY="auto"
-            w="full"
-            borderColor="red.500"
-            borderWidth={1}
-            borderRadius="md"
-            p={2}
-          >
-            <Text color="red.500">Error: {error}</Text>
-          </Box>
-        )}
-        {customMessage !== "" ? <>Error: {customMessage}</> : ""}
-        <Toaster />
-      </Flex>
-      <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">NFT List</h1>
-      <NFTList nfts={nfts} />
-    </div>
+      <div className="flex flex-col items-center p-4">
+        <h1 className="text-2xl font-bold mb-4">
+          Mint Without Gas or Funds on a Chain
+        </h1>
+        <Box>
+          {error && (
+            <Box
+              mt={2}
+              maxHeight="100px"
+              overflowY="auto"
+              w="full"
+              borderColor="red.500"
+              borderWidth={1}
+              borderRadius="md"
+              p={2}
+            >
+              <Text color="red.500">Error: {error}</Text>
+            </Box>
+          )}
+          {customMessage !== "" && (
+            <Text color="red.500">Error: {customMessage}</Text>
+          )}
+          <SimpleGrid columns={isMobile ? 1 : 3} spacing={4}>
+            {nfts.map((nft) => (
+              // <Box key={nft.id} borderWidth={1} borderRadius="lg" overflow="hidden">
+              <div
+                key={nft.id}
+                className="flex items-center flex-col p-4 border rounded-lg"
+                style={{ justifyContent: "space-evenly" }}
+              >
+                <img
+                  src={nft.image}
+                  alt={nft.name}
+                  // style={{ width: "100%", height: "200px", objectFit: "cover" }}
+                  className="w-64 h-64 rounded-lg"
+                />
+                <Text fontSize="sm" mb={2} p={6} className="font-bold">
+                  Smoke on {nft.chain}
+                </Text>
+                <Button onClick={() => handleMint()}>Mint</Button>
+              </div>
+            ))}
+          </SimpleGrid>
+        </Box>
+      </div>
     </div>
   );
 };

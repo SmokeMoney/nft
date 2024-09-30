@@ -70,6 +70,7 @@ import { addressToBytes32 } from "./utils/addressConversion";
 import Header from "./components/Header";
 import ZoraTab from "./components/ZoraTab";
 import NFTTab from "./components/NFTTab";
+import DataNonce from "./components/DataNonce";
 
 export const NFT_CONTRACT_ADDRESS = import.meta.env
   .VITE_NFT_CONTRACT_ADDRESS as Address;
@@ -121,6 +122,11 @@ const CrossChainLendingApp: React.FC = () => {
   const [wallets, setWallets] = useState<WalletConfig[]>([]);
   const [supportedChain, setSupportedChain] = useState<boolean>(false);
   const [updateDataCounter, setUpdateDataCounter] = useState<number>(0);
+
+  const [borrowNonce, setBorrowNonce] = useState<bigint | undefined>(undefined);
+  const [lendingAddress, setLendingAddress] = useState<
+    `0x${string}` | undefined
+  >(undefined);
 
   const [chainList2, setChainList2] = useState<string[]>([]);
   const { address, isConnected } = useAccount();
@@ -514,9 +520,7 @@ const CrossChainLendingApp: React.FC = () => {
                     <Button
                       className="fontSizeLarge"
                       onClick={() => setActiveTab("nft")}
-                      variant={
-                        activeTab === "nft" ? "destructive" : "default"
-                      }
+                      variant={activeTab === "nft" ? "destructive" : "default"}
                     >
                       NFT
                     </Button>
@@ -547,6 +551,7 @@ const CrossChainLendingApp: React.FC = () => {
               {activeTab === "withdraw" && (
                 <WithdrawTab
                   selectedNFT={selectedNFT}
+                  borrowNonce={borrowNonce}
                   address={address}
                   ethBalance={ethBalance}
                   ethPrice={ethPrice}
@@ -571,6 +576,8 @@ const CrossChainLendingApp: React.FC = () => {
                   selectedNFT={selectedNFT}
                   updateDataCounter={updateDataCounter}
                   setUpdateDataCounter={setUpdateDataCounter}
+                  borrowNonce={borrowNonce}
+                  isMobile={isMobile}
                 />
               )}
             </>
@@ -617,6 +624,12 @@ const CrossChainLendingApp: React.FC = () => {
             setUpdateDataCounter={setUpdateDataCounter}
           />
         )}
+        <DataNonce
+          selectedNFT={selectedNFT}
+          lendingAddress={lendingAddress}
+          setLendingAddress={setLendingAddress}
+          setBorrowNonce={setBorrowNonce}
+        />
       </div>
     </div>
   );
