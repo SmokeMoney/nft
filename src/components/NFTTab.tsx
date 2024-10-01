@@ -9,6 +9,7 @@ import {
   useChainId,
   usePublicClient,
   useSignTypedData,
+  useSwitchChain,
 } from "wagmi";
 import { NFT } from "@/types";
 import { getBorrowSignature, requestGaslessMinting } from "@/utils/borrowUtils";
@@ -17,20 +18,15 @@ import { parseEther } from "viem";
 import {
   getChainExplorer,
   getChainLendingAddress,
+  getLegacyId,
   getLZId,
   getNftAddress,
 } from "@/utils/chainMapping";
 import { useWriteContracts } from "wagmi/experimental";
-import { Box, SimpleGrid, Text } from "@chakra-ui/react";
+import { Box, Flex, SimpleGrid, Spinner, Text } from "@chakra-ui/react";
 import { useToast } from "./ui/use-toast";
 import { ToastAction } from "./ui/toast";
-
-interface NFTDemo {
-  id: string;
-  name: string;
-  image: string;
-  chain: string;
-}
+import { Toaster } from "./ui/toaster";
 
 const NFTTab: React.FC<{
   selectedNFT: NFT | undefined;
@@ -45,10 +41,11 @@ const NFTTab: React.FC<{
   borrowNonce,
   isMobile,
 }) => {
-  const { data: capabilities } = useCapabilities();
+  // const { data: capabilities } = useCapabilities();
   // console.log(capabilities);
   const [customMessage, setCustomMessage] = useState<string>("");
-
+  const [recentHash, setRecentHash] = useState<string>("");
+  const [minting, setMinting] = useState<string>("");
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [addressType, setAddressType] = useState<string | null>(null);
@@ -56,6 +53,7 @@ const NFTTab: React.FC<{
   const { address } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient();
+  const { switchChain } = useSwitchChain();
   const mintCost = "0.002";
   const { writeContractsAsync } = useWriteContracts();
   const { signTypedDataAsync } = useSignTypedData();
@@ -102,12 +100,16 @@ const NFTTab: React.FC<{
       }
     };
     checkAddressType();
+    setRecentHash("");
   }, [address, chainId, publicClient]);
 
+  const switchToChain = async (newChainId: any) => {
+    switchChain({ chainId: newChainId });
+  };
   const spendingAbi = parseDumbAbis(spendingRawAbi);
-  const handleMint = async () => {
+  const handleMint = async (index: any) => {
     console.log("asdf");
-    if (addressType === "Smart Contract") {
+    if (addressType === "Smart Contract" && chainId == 84532) {
       console.log("inside ");
 
       if (!address || !selectedNFT) return;
@@ -151,10 +153,7 @@ const NFTTab: React.FC<{
                 ],
               },
               {
-                address:
-                  chainId == 84532
-                    ? "0xD1F1Fc828205B65290093939c279E21be59c8916"
-                    : "0x6eA21415e845c323a98d2D7cbFEf65A285080361",
+                address: nfts[0]["nftAddress"] as `0x${string}`,
                 abi,
                 functionName: "mint",
                 args: [],
@@ -185,6 +184,14 @@ const NFTTab: React.FC<{
     } else if (addressType === "EOA (Externally Owned Account)") {
       const timestamp = BigInt(Math.floor(Date.now() / 1000));
 
+      // const borrowAndMintAddress = "0xA27aA06097Bc9276dCA245C66911A238498445F5";
+      // const simpleNFTAddress = "0x3bcd37Ea3bB69916F156CB0BC954309bc7B7b4AC";
+      console.log("indnex", index);
+      const simpleNFTAddress = nfts[index]["nftAddress"];
+      const borrowAndMintAddress = borrowAndMintAddresses[index][
+        "address"
+      ] as `0x${string}`;
+      console.log(borrowAndMintAddress);
       const signatureValidity = BigInt(1200); // 2 minutes
       try {
         if (!address || borrowNonce == undefined || !selectedNFT) return null;
@@ -216,28 +223,31 @@ const NFTTab: React.FC<{
             timestamp,
             signatureValidity,
             nonce: borrowNonce,
-            recipient: "0x57148278E856654D2930b4BAD7517a3f261cF67c",
+            recipient: borrowAndMintAddress,
           },
         });
         if (typeof signature === "string") {
           if (!address || !selectedNFT) return null;
-
+          setMinting("true");
           const result = await requestGaslessMinting(
             address,
             selectedNFT.id,
             parseEther(mintCost).toString(),
             timestamp.toString(),
             getLZId(chainId).toString(),
-            "0x57148278E856654D2930b4BAD7517a3f261cF67c",
+            borrowAndMintAddress,
             signature,
             false,
-            0
+            0,
+            simpleNFTAddress
           );
           console.log("MINTING IS HARD", result);
           if (result) {
             console.log("Gasless borrow transaction hash:", result);
+            setMinting("");
             if (result.status === "borrow_approved") {
               setCustomMessage("");
+              setRecentHash(result.hash);
               toast({
                 description: "Gasless borrow initiated successfully",
                 action: (
@@ -280,12 +290,63 @@ const NFTTab: React.FC<{
   };
 
   const nfts = [
-    { id: "1", name: "ETH NFT", image: "/smoke_eth.png", chain: "Ethereum" },
-    { id: "2", name: "ARB NFT", image: "/smoke_arb.png", chain: "Arbitrum" },
-    { id: "3", name: "OPT NFT", image: "/smoke_opt.png", chain: "Optimism" },
-    { id: "4", name: "BASE NFT", image: "/smoke_base.png", chain: "Base" },
-    { id: "5", name: "ZORA 3NFT", image: "/smoke_zora.png", chain: "Zora" },
-    { id: "6", name: "BLAST NFT", image: "/smoke_blast.png", chain: "Blast" },
+    {
+      id: "1",
+      name: "BASE NFT",
+      image: "/smoke_base.png",
+      chain: "Base",
+      nftAddress: "0x3bcd37Ea3bB69916F156CB0BC954309bc7B7b4AC",
+      chainId: 84532,
+    },
+    {
+      id: "2",
+      name: "ARB NFT",
+      image: "/smoke_arb.png",
+      chain: "Arbitrum",
+      nftAddress: "0x475A999e1D6A50D483A207fC8D52B583669DB90c",
+      chainId: 421614,
+    },
+    {
+      id: "3",
+      name: "OPT NFT",
+      image: "/smoke_opt.png",
+      chain: "Optimism",
+      nftAddress: "0x269488db82d434dC2E08e3B6f428BD1FF90C4325",
+      chainId: 11155420,
+    },
+    {
+      id: "4",
+      name: "ETH NFT",
+      image: "/smoke_eth.png",
+      chain: "Ethereum",
+      nftAddress: "0xe06883A0caaFe865F23597AdEDC7af4cBEaBA7E2",
+      chainId: 11155111,
+    },
+    {
+      id: "5",
+      name: "ZORA 3NFT",
+      image: "/smoke_zora.png",
+      chain: "Zora",
+      nftAddress: "0x9b6f6F895a011c2C90857596A1AE2f537B097f52",
+      chainId: 999999999,
+    },
+    {
+      id: "6",
+      name: "BLAST NFT",
+      image: "/smoke_blast.png",
+      chain: "Blast",
+      nftAddress: "0x244a4b538171D0b5b7f8Ff70812CaE1d43886183",
+      chainId: 168587773,
+    },
+  ];
+
+  const borrowAndMintAddresses = [
+    { id: "1", address: "0xA27aA06097Bc9276dCA245C66911A238498445F5" },
+    { id: "2", address: "0x0B3dc9af23C391Ca43061b6A5ECDD67c4abA2C0e" },
+    { id: "3", address: "0xBF9CB56e2e927AEF651723d07e1eC95dC3F9764d" },
+    { id: "4", address: "0x30C0fFa5eC03E33F8c60e2d62f97A0d03bE4aFcf" },
+    { id: "5", address: "0x3a771f2D212979363715aB06F078F0Fb4d6e96Cb" },
+    { id: "6", address: "0x3431a7631d6fee6a16E10ef3cCd8aAb06E58D555" },
   ];
 
   return (
@@ -312,8 +373,28 @@ const NFTTab: React.FC<{
           {customMessage !== "" && (
             <Text color="red.500">Error: {customMessage}</Text>
           )}
+          {minting !== "" && (
+            <Flex>
+              <div>Minting...</div>
+              <Spinner color="red.500" size="xl" />
+            </Flex>
+          )}
+          {recentHash !== "" && (
+            <>
+              Minted NFT! ,{" "}
+              <a
+                href={getChainExplorer(getLZId(chainId)) + "tx/" + recentHash}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "blue", textDecoration: "underline" }}
+                onClick={(e) => e.stopPropagation()} // Prevent toast from closing
+              >
+                View on Explorer
+              </a>
+            </>
+          )}
           <SimpleGrid columns={isMobile ? 1 : 3} spacing={4}>
-            {nfts.map((nft) => (
+            {nfts.map((nft, index) => (
               // <Box key={nft.id} borderWidth={1} borderRadius="lg" overflow="hidden">
               <div
                 key={nft.id}
@@ -329,11 +410,21 @@ const NFTTab: React.FC<{
                 <Text fontSize="sm" mb={2} p={6} className="font-bold">
                   Smoke on {nft.chain}
                 </Text>
-                <Button onClick={() => handleMint()}>Mint</Button>
+                {nft.chainId === chainId ? (
+                  <Button onClick={() => handleMint(index)}>Mint</Button>
+                ) : (
+                  <Button
+                    className="fontSizeLarge"
+                    onClick={() => switchToChain(nft.chainId)}
+                  >
+                    Switch Chain
+                  </Button>
+                )}
               </div>
             ))}
           </SimpleGrid>
         </Box>
+        <Toaster />
       </div>
     </div>
   );

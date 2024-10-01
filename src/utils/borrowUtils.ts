@@ -70,7 +70,8 @@ export const requestGaslessMinting = async (
   recipientAddress: string,
   userSignature: string,
   weth: boolean,
-  integrator: number
+  integrator: number,
+  nftAddress: string,
 ) => {
 
   try {
@@ -84,6 +85,7 @@ export const requestGaslessMinting = async (
       userSignature: userSignature,
       weth: weth,
       integrator: integrator,
+      nftAddress: nftAddress,
     });
     return response.data;
   } catch (error) {
