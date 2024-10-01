@@ -10,6 +10,7 @@ import {
   usePublicClient,
   useSignTypedData,
   useSwitchChain,
+  useWaitForTransactionReceipt,
 } from "wagmi";
 import { NFT } from "@/types";
 import { getBorrowSignature, requestGaslessMinting } from "@/utils/borrowUtils";
@@ -22,7 +23,11 @@ import {
   getLZId,
   getNftAddress,
 } from "@/utils/chainMapping";
-import { useWriteContracts } from "wagmi/experimental";
+import {
+  useWriteContracts,
+  useCallsStatus,
+  useShowCallsStatus,
+} from "wagmi/experimental";
 import { Box, Flex, SimpleGrid, Spinner, Text } from "@chakra-ui/react";
 import { useToast } from "./ui/use-toast";
 import { ToastAction } from "./ui/toast";
@@ -47,7 +52,7 @@ const NFTTab: React.FC<{
   const [recentHash, setRecentHash] = useState<string>("");
   const [minting, setMinting] = useState<string>("");
   const { toast } = useToast();
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [addressType, setAddressType] = useState<string | null>(null);
 
   const { address } = useAccount();
@@ -55,7 +60,41 @@ const NFTTab: React.FC<{
   const publicClient = usePublicClient();
   const { switchChain } = useSwitchChain();
   const mintCost = "0.002";
-  const { writeContractsAsync } = useWriteContracts();
+  const {
+    data: hash,
+    isPending,
+    error,
+    writeContractsAsync,
+  } = useWriteContracts();
+
+  const { showCallsStatus } = useShowCallsStatus();
+
+  // useEffect(() => {
+  //   const newHash: `0x${string}` | undefined = hash as `0x${string}`;
+  //   const { isLoading: isTransactionLoading, isSuccess: isTransactionSuccess } =
+  //     useWaitForTransactionReceipt({
+  //       newHash,
+  //     });
+  // }, [hash, isPending, error]);
+
+  // useEffect(() => {
+  //   if (!isPending && hash !== undefined) {
+  //     console.log("weird ", hash);
+  //     setRecentHash(hash);
+  //     setMinting("");
+  //   }
+  //   console.log(showCallsStatus);
+
+  //   const { data: callsStatus } = useCallsStatus({
+  //     hash,
+  //     query: {
+  //       refetchInterval: (data) =>
+  //         data.state.data?.status === "CONFIRMED" ? false : 1000,
+  //     },
+  //   });
+  //   console.log(callsStatus);
+  // }, [isPending, callsStatus, showCallsStatus]);
+
   const { signTypedDataAsync } = useSignTypedData();
   const abi = [
     {
@@ -161,15 +200,23 @@ const NFTTab: React.FC<{
               },
             ],
           });
-          console.log(result);
+          const { data: callsStatus } = useCallsStatus({
+            result,
+            query: {
+              refetchInterval: (data) =>
+                data.state.data?.status === "CONFIRMED" ? false : 1000,
+            },
+          });
+          console.log(callsStatus);
+          setMinting("true");
         } catch (err: unknown) {
           console.log(err);
           if (err instanceof Error) {
-            setError(err.message);
+            setErrorMessage(err.message);
           } else if (typeof err === "string") {
-            setError(err);
+            setErrorMessage(err);
           } else {
-            setError("An unknown error occurred during the transaction");
+            setErrorMessage("An unknown error occurred during the transaction");
           }
         }
         setUpdateDataCounter(updateDataCounter + 1);
@@ -367,7 +414,7 @@ const NFTTab: React.FC<{
               borderRadius="md"
               p={2}
             >
-              <Text color="red.500">Error: {error}</Text>
+              <Text color="red.500">Error: {errorMessage}</Text>
             </Box>
           )}
           {customMessage !== "" && (
