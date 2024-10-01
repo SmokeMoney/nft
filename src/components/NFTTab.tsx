@@ -458,11 +458,17 @@ const NFTTab: React.FC<{
                   Smoke on {nft.chain}
                 </Text>
                 {nft.chainId === chainId ? (
-                  <Button onClick={() => handleMint(index)}>Mint</Button>
+                  <Button
+                    onClick={() => handleMint(index)}
+                    disabled={nft.chainId == 11155111}
+                  >
+                    Mint
+                  </Button>
                 ) : (
                   <Button
                     className="fontSizeLarge"
                     onClick={() => switchToChain(nft.chainId)}
+                    disabled={nft.chainId == 11155111}
                   >
                     Switch Chain
                   </Button>
