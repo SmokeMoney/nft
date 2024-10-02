@@ -1,6 +1,19 @@
 import { useState, useEffect } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Button, Box, Flex, SimpleGrid, Text } from "@chakra-ui/react";
+import {
+  Button,
+  Box,
+  Flex,
+  SimpleGrid,
+  Text,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalContent,
+  ModalOverlay,
+  ModalCloseButton,
+} from "@chakra-ui/react";
 import {
   useChainId,
   useSwitchChain,
@@ -28,7 +41,7 @@ import {
   useShowCallsStatus,
 } from "wagmi/experimental";
 import DataNonce from "./components/DataNonce";
-import { useToast } from "@chakra-ui/react";
+import { useToast, useDisclosure } from "@chakra-ui/react";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL!;
 
@@ -173,6 +186,7 @@ function App() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const { signTypedDataAsync } = useSignTypedData();
   const {
@@ -194,8 +208,6 @@ function App() {
   const [supportedChain, setSupportedChain] = useState<boolean>(false);
   const [updateDataCounter, setUpdateDataCounter] = useState<number>(0);
   const [minting, setMinting] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [customMessage, setCustomMessage] = useState<string>("");
   const [borrowNonce, setBorrowNonce] = useState<bigint | undefined>(undefined);
   const [lendingAddress, setLendingAddress] = useState<
     `0x${string}` | undefined
@@ -354,14 +366,22 @@ function App() {
           setMinting(true);
         } catch (err: unknown) {
           console.log(err);
-          console.log("in here");
+
+          let description;
           if (err instanceof Error) {
-            setErrorMessage(err.message);
+            description = err.message;
           } else if (typeof err === "string") {
-            setErrorMessage(err);
+            description = err;
           } else {
-            setErrorMessage("An unknown error occurred during the transaction");
+            description = "An unknown error occurred during the transaction";
           }
+          toast({
+            title: "error",
+            description,
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
         }
         setUpdateDataCounter(updateDataCounter + 1);
       } else if (status === "not_enough_limit") {
@@ -370,17 +390,16 @@ function App() {
           title: "error",
           description: "You don't have enough limit to borrow",
           status: "error",
-          duration: 9000,
+          duration: 5000,
           isClosable: true,
         });
         return;
       } else {
-        setCustomMessage("Unknown error, reach out to us on Discord");
         toast({
           title: "error",
           description: "Unknown error, reach out to us on Discord",
           status: "error",
-          duration: 9000,
+          duration: 5000,
           isClosable: true,
         });
         return;
@@ -455,8 +474,6 @@ function App() {
             console.log("Gasless borrow transaction hash:", result);
 
             if (result.status === "borrow_approved") {
-              console.log("walletActionNeeded", walletActionNeeded);
-              setCustomMessage("");
               setRecentHash(result.hash);
               setTxHashes({
                 ...txHashes,
@@ -475,7 +492,7 @@ function App() {
                 title: "Something went wrong",
                 description,
                 status: "error",
-                duration: 9000,
+                duration: 5000,
                 isClosable: true,
                 variant: "subtle",
                 position: "bottom-right",
@@ -492,7 +509,7 @@ function App() {
         toast({
           title: "Something went wrong",
           status: "error",
-          duration: 9000,
+          duration: 5000,
           isClosable: true,
           variant: "subtle",
           position: "bottom-right",
@@ -552,7 +569,47 @@ function App() {
             mint without gas or funds on any chain
           </Text>
         </Box>
-        <ConnectButton />
+        <Flex flexDirection="row" justifyContent="center" alignItems="end">
+          <Flex
+            mt="1"
+            bg="black"
+            borderRadius="xl"
+            py="2"
+            px="3"
+            mr="3"
+            justifyContent="center"
+            alignItems="center"
+            color="white"
+            cursor="pointer"
+          >
+            <Text
+              fontSize="md"
+              fontWeight="600"
+              textAlign="center"
+              mr="2"
+              onClick={onOpen}
+            >
+              💳 $123.00
+            </Text>
+            <svg
+              fill="none"
+              height="7"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <title>Dropdown</title>
+              <path
+                d="M12.75 1.54001L8.51647 5.0038C7.77974 5.60658 6.72026 5.60658 5.98352 5.0038L1.75 1.54001"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                xmlns="http://www.w3.org/2000/svg"
+              ></path>
+            </svg>
+          </Flex>
+          <ConnectButton accountStatus="avatar" chainStatus="icon" />
+        </Flex>
       </Flex>
       <SimpleGrid
         columns={[1, 3, 3]}
@@ -617,6 +674,21 @@ function App() {
         setLendingAddress={setLendingAddress}
         setBorrowNonce={setBorrowNonce}
       />
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent bg="black" color="white" rounded="xl" p="2">
+          <ModalHeader>Smoke Card</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>Smoke NFT goes here</ModalBody>
+          <ModalFooter>
+            <Button
+              onClick={() => window.open("https://app.smoke.money/", "_blank")}
+            >
+              manage card
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }
