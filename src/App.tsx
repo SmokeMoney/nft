@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
   Button,
@@ -42,8 +42,17 @@ import {
 } from "wagmi/experimental";
 import DataNonce from "./components/DataNonce";
 import { useToast, useDisclosure } from "@chakra-ui/react";
+import {
+  PriceFeed,
+  PriceServiceConnection,
+} from "@pythnetwork/price-service-client";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL!;
+
+const priceFeedIdETH =
+  "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace"; // ETH/USD
+const priceFeedIdwstETH =
+  "0x6df640f3b8963d8f8358f791f352b8364513f6ab1cca5ed3f1f7b5448980e784"; // wstETH/USD
 
 const nfts = [
   {
@@ -204,7 +213,6 @@ function App() {
   const [recentHash, setRecentHash] = useState<string>("");
   const [listNFTs, setListNFTs] = useState<NFT[]>([]);
   const [selectedNFT, setSelectedNFT] = useState<NFT>();
-  const [ethBalance, setEthBalance] = useState<string>("");
   const [supportedChain, setSupportedChain] = useState<boolean>(false);
   const [updateDataCounter, setUpdateDataCounter] = useState<number>(0);
   const [minting, setMinting] = useState<boolean>(false);
@@ -212,6 +220,10 @@ function App() {
   const [lendingAddress, setLendingAddress] = useState<
     `0x${string}` | undefined
   >(undefined);
+  const [ethPrice, setEthPrice] = useState<string>("");
+  const [ethBalance, setEthBalance] = useState<string>("");
+  const [ethOrUSD, setEthOrUSD] = useState<boolean>(true);
+  const [wstETHRatio, setWstethRatio] = useState<string>("");
 
   const [txHashes, setTxHashes] = useState<Record<string, string>>({});
 
@@ -546,6 +558,131 @@ function App() {
     );
   };
 
+  const fetchOracleData = async (): Promise<{
+    eth: string;
+    wsteth: string;
+  }> => {
+    let newETHPrice = "0";
+    let newWstETHPrice = "0";
+    try {
+      const priceFeedIds = [priceFeedIdETH, priceFeedIdwstETH];
+      const connection = new PriceServiceConnection(
+        "https://hermes.pyth.network"
+      );
+      const priceFeeds = await connection.getLatestPriceFeeds(priceFeedIds);
+
+      if (priceFeeds && priceFeeds.length > 0) {
+        priceFeeds.forEach((feed: PriceFeed, index: number) => {
+          const price = feed.getPriceUnchecked(); // Get price no older than 60 seconds
+          if (price) {
+            const priceString = (
+              Number(price.price) *
+              10 ** price.expo
+            ).toFixed(6);
+            if (index === 0) {
+              newETHPrice = priceString;
+            } else if (index === 1) {
+              newWstETHPrice = priceString;
+            }
+          }
+        });
+      } else {
+        console.warn("No price feeds re turned from Pyth Network");
+      }
+      return { eth: newETHPrice, wsteth: newWstETHPrice };
+    } catch (error) {
+      console.error("Error fetching prices:", error);
+      return { eth: newETHPrice, wsteth: newWstETHPrice };
+    }
+  };
+
+  useEffect(() => {
+    const updatePrices = async () => {
+      const oracleData: { eth: string; wsteth: string } =
+        await fetchOracleData();
+      if (Number(oracleData.eth) > 0) {
+        setEthPrice(oracleData.eth);
+        const wstETHRatio =
+          (parseEther(oracleData.wsteth) * parseEther("1")) /
+          parseEther(oracleData.eth);
+        setWstethRatio(wstETHRatio.toString());
+      }
+    };
+    updatePrices();
+  }, [isConnected, address, selectedNFT, updateDataCounter]);
+
+  const totalWethDeposits = BigInt(
+    selectedNFT?.wethDeposits?.reduce(
+      (sum, deposit) => sum + parseFloat(deposit.amount),
+      0
+    ) ?? 0
+  );
+
+  const totalWstEthDeposits = BigInt(
+    selectedNFT?.wstEthDeposits?.reduce(
+      (sum, deposit) => sum + parseFloat(deposit.amount),
+      0
+    ) ?? 0
+  );
+
+  const calculations = useMemo(() => {
+    const wstEthInEth =
+      (totalWstEthDeposits * BigInt(wstETHRatio)) / parseEther("1");
+    const totalDepositsEth = totalWethDeposits + wstEthInEth;
+    const totalDepositsUsd =
+      (parseEther(ethPrice) * totalDepositsEth) / parseEther("1");
+    const totalBorrowed = BigInt(selectedNFT?.totalBorrowPosition ?? 0);
+    const totalBorrowedUsd =
+      (parseEther(ethPrice) * totalBorrowed) / parseEther("1");
+    const availableToBorrowEth =
+      (totalDepositsEth * BigInt(90)) / BigInt(100) +
+      BigInt(selectedNFT?.nativeCredit ?? "0") -
+      totalBorrowed;
+    const availableToBorrowUsd =
+      (parseEther(ethPrice) * availableToBorrowEth) / parseEther("1");
+
+    return {
+      totalDepositsEth,
+      totalDepositsUsd,
+      totalBorrowed,
+      totalBorrowedUsd,
+      availableToBorrowEth,
+      availableToBorrowUsd,
+      wethDeposits: BigInt(
+        selectedNFT?.wethDeposits?.reduce(
+          (sum, deposit) => sum + parseFloat(deposit.amount),
+          0
+        ) ?? 0
+      ),
+      wstEthDeposits: BigInt(
+        selectedNFT?.wstEthDeposits?.reduce(
+          (sum, deposit) => sum + parseFloat(deposit.amount),
+          0
+        ) ?? 0
+      ),
+    };
+  }, [
+    ethPrice,
+    totalWethDeposits,
+    totalWstEthDeposits,
+    wstETHRatio,
+    selectedNFT,
+  ]);
+
+  const formatValue = (value: bigint, decimals: number = 5) =>
+    Number(formatEther(value)).toPrecision(decimals);
+
+  const smokeBalance = formatValue(
+    ethOrUSD
+      ? calculations.availableToBorrowUsd
+      : calculations.availableToBorrowEth
+  );
+
+  console.log("usd avail", formatValue(calculations.availableToBorrowUsd));
+  console.log("eth avail", formatValue(calculations.availableToBorrowEth));
+
+  console.log("smokeBalance", smokeBalance);
+
   return (
     <Box p="6" bg="gray.800">
       <Flex
@@ -589,7 +726,8 @@ function App() {
               mr="2"
               onClick={onOpen}
             >
-              💳 $123.00
+              💳 {ethOrUSD ? "$" : ""}
+              {smokeBalance} {ethOrUSD ? "USD" : "ETH"}
             </Text>
             <svg
               fill="none"
