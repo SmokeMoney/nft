@@ -16,6 +16,7 @@ import {
 
 import { ThemeProvider } from "@/components/theme-provider";
 import "./index.css";
+import { ChakraProvider } from "@chakra-ui/react";
 
 // `@coinbase-wallet/sdk` uses `Buffer`
 globalThis.Buffer = Buffer;
@@ -50,9 +51,14 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
         persistOptions={{ persister }}
       >
         <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-          <RainbowKitProvider showRecentTransactions={true}>
-            <App />
-          </RainbowKitProvider>
+          <ChakraProvider>
+            <RainbowKitProvider
+              showRecentTransactions={true}
+              theme={midnightTheme()}
+            >
+              <App />
+            </RainbowKitProvider>
+          </ChakraProvider>
         </ThemeProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </PersistQueryClientProvider>
