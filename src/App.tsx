@@ -222,7 +222,7 @@ function App() {
   >(undefined);
   const [ethPrice, setEthPrice] = useState<string>("");
   const [ethBalance, setEthBalance] = useState<string>("");
-  const [ethOrUSD, setEthOrUSD] = useState<boolean>(true);
+  const [ethOrUSD, setEthOrUSD] = useState<boolean>(false);
   const [wstETHRatio, setWstethRatio] = useState<string>("");
 
   const [txHashes, setTxHashes] = useState<Record<string, string>>({});
@@ -769,7 +769,7 @@ function App() {
               className="w-fit h-fit rounded-lg"
             />
             <Flex
-              mt={2}
+              mt={3}
               alignItems="center"
               justifyContent="space-between"
               width="full"
@@ -812,12 +812,17 @@ function App() {
         setLendingAddress={setLendingAddress}
         setBorrowNonce={setBorrowNonce}
       />
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal isOpen={isOpen} onClose={onClose} motionPreset="slideInBottom">
         <ModalOverlay />
         <ModalContent bg="black" color="white" rounded="xl" p="2">
           <ModalHeader>Smoke Card</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>Smoke NFT goes here</ModalBody>
+          <ModalBody>
+            <Text>NFT ID: {selectedNFT?.id.toString()}</Text>
+            <Text>Available Credit:</Text>
+            <Text>{formatValue(calculations.availableToBorrowEth)} ETH</Text>
+            <Text>${formatValue(calculations.availableToBorrowUsd)} USD</Text>
+          </ModalBody>
           <ModalFooter>
             <Button
               onClick={() => window.open("https://app.smoke.money/", "_blank")}
