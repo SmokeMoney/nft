@@ -35,11 +35,7 @@ import {
   getLZId,
   getNftAddress,
 } from "@/utils/chainMapping";
-import {
-  useWriteContracts,
-  useCallsStatus,
-  useShowCallsStatus,
-} from "wagmi/experimental";
+import { getCallsStatus, writeContracts } from "@wagmi/core/experimental";
 import DataNonce from "./components/DataNonce";
 import { useToast, useDisclosure } from "@chakra-ui/react";
 import {
@@ -198,19 +194,11 @@ function App() {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const { signTypedDataAsync } = useSignTypedData();
-  const {
-    data: hash,
-    isPending,
-    error,
-    writeContractsAsync,
-  } = useWriteContracts();
-
   const [walletActionNeeded, setWalletActionNeeded] = useState<false | number>(
     false
   );
 
   const [addressType, setAddressType] = useState<string | null>(null);
-  const [recentHash, setRecentHash] = useState<string>("");
   const [listNFTs, setListNFTs] = useState<NFT[]>([]);
   const [selectedNFT, setSelectedNFT] = useState<NFT>();
   const [supportedChain, setSupportedChain] = useState<boolean>(false);
@@ -257,7 +245,6 @@ function App() {
       }
     };
     checkAddressType();
-    setRecentHash("");
   }, [address, chainId, publicClient]);
 
   useEffect(() => {
@@ -326,6 +313,7 @@ function App() {
         getLZId(chainId).toString(),
         addressToBytes32(address)
       );
+      console.log("signatureData", signatureData);
       if (!signatureData) {
         console.error("Failed to get borrow signature");
         return;
@@ -338,8 +326,9 @@ function App() {
       } = signatureData;
 
       if (status === "borrow_approved") {
+        setMinting(true);
         try {
-          const result = await writeContractsAsync({
+          const id = await writeContracts(config, {
             contracts: [
               {
                 address: getChainLendingAddress(getLZId(chainId)),
@@ -359,24 +348,40 @@ function App() {
                 ],
               },
               {
-                address: nfts[0]["nftAddress"] as `0x${string}`,
+                address: nfts[index]["nftAddress"] as `0x${string}`,
                 abi,
                 functionName: "mint",
                 args: [],
                 value: parseEther("0.002"),
               },
             ],
+            chainId,
           });
-          const { data: callsStatus } = useCallsStatus({
-            result,
-            query: {
-              refetchInterval: (data) =>
-                data.state.data?.status === "CONFIRMED" ? false : 1000,
-            },
-          });
-          console.log(callsStatus);
-          setMinting(true);
+
+          // polling strategy for getting the status of the tx
+          const intervalId = setInterval(async () => {
+            const { status, receipts } = await getCallsStatus(config, {
+              id,
+            });
+
+            console.log("status", status);
+            console.log("receipts", receipts);
+
+            if (status === "CONFIRMED" && receipts) {
+              const hash = receipts[0].transactionHash;
+              console.log("hash", hash);
+              setTxHashes({
+                ...txHashes,
+                [chainId]: hash,
+              });
+              setMinting(false);
+              setWalletActionNeeded(false);
+              setUpdateDataCounter(updateDataCounter + 1);
+              clearInterval(intervalId);
+            }
+          }, 2000);
         } catch (err: unknown) {
+          console.log("inside the catch");
           console.log(err);
 
           let description;
@@ -394,8 +399,11 @@ function App() {
             duration: 5000,
             isClosable: true,
           });
+
+          setMinting(false);
+          setWalletActionNeeded(false);
+          setUpdateDataCounter(updateDataCounter + 1);
         }
-        setUpdateDataCounter(updateDataCounter + 1);
       } else if (status === "not_enough_limit") {
         console.error("Borrow limit reached");
         toast({
@@ -486,7 +494,6 @@ function App() {
             console.log("Gasless borrow transaction hash:", result);
 
             if (result.status === "borrow_approved") {
-              setRecentHash(result.hash);
               setTxHashes({
                 ...txHashes,
                 [chainId]: result.hash,
