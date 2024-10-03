@@ -825,8 +825,16 @@ function App() {
           </ModalBody>
           <ModalFooter>
             <Button
-              onClick={() => window.open("https://app.smoke.money/", "_blank")}
+              variant="link"
+              as="a"
+              href="https://app.smoke.money/"
+              target="_blank"
+              colorScheme="white"
+              mr="4"
             >
+              (what is smoke?)
+            </Button>
+            <Button as="a" href="https://app.smoke.money/" target="_blank">
               manage card
             </Button>
           </ModalFooter>
