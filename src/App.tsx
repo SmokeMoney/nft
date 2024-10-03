@@ -683,14 +683,14 @@ function App() {
 
   console.log("smokeBalance", smokeBalance);
 
-  const getColorScheme = (chainId:any) => {
-    if (chainId == 84532) return 'blue';
-    else if (chainId == 421614) return 'teal';  
-    else if (chainId == 11155420) return 'red';
-    else if (chainId == 11155111) return 'gray';
-    else if (chainId == 999999999) return 'purple';
-    else if (chainId == 168587773) return 'yellow';
-  }
+  const getColorScheme = (chainId: any) => {
+    if (chainId == 84532) return "blue";
+    else if (chainId == 421614) return "teal";
+    else if (chainId == 11155420) return "red";
+    else if (chainId == 11155111) return "gray";
+    else if (chainId == 999999999) return "purple";
+    else if (chainId == 168587773) return "yellow";
+  };
 
   return (
     <Box p="6" bg="gray.800">
@@ -717,7 +717,6 @@ function App() {
         </Box>
         <Flex flexDirection="row" justifyContent="center" alignItems="end">
           <Flex
-            mt="1"
             bg="black"
             borderRadius="xl"
             py="2"
@@ -727,14 +726,9 @@ function App() {
             alignItems="center"
             color="white"
             cursor="pointer"
+            onClick={onOpen}
           >
-            <Text
-              fontSize="md"
-              fontWeight="600"
-              textAlign="center"
-              mr="2"
-              onClick={onOpen}
-            >
+            <Text fontSize="md" fontWeight="600" textAlign="center" mr="2">
               💳 {ethOrUSD ? "$" : ""}
               {smokeBalance} {ethOrUSD ? "USD" : "ETH"}
             </Text>
