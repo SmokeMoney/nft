@@ -683,6 +683,15 @@ function App() {
 
   console.log("smokeBalance", smokeBalance);
 
+  const getColorScheme = (chainId:any) => {
+    if (chainId == 84532) return 'blue';
+    else if (chainId == 421614) return 'teal';  
+    else if (chainId == 11155420) return 'red';
+    else if (chainId == 11155111) return 'gray';
+    else if (chainId == 999999999) return 'purple';
+    else if (chainId == 168587773) return 'yellow';
+  }
+
   return (
     <Box p="6" bg="gray.800">
       <Flex
@@ -787,7 +796,7 @@ function App() {
                   isDisabled={
                     nft.chainId == 11155111 || walletActionNeeded === index
                   }
-                  colorScheme="yellow"
+                  colorScheme="green"
                 >
                   {getButtonText(index)}
                 </Button>
@@ -796,8 +805,8 @@ function App() {
                   className="fontSizeLarge"
                   onClick={() => switchToChain(nft.chainId)}
                   isDisabled={nft.chainId === 11155111}
-                  colorScheme="whiteAlpha"
-                  opacity="0.6"
+                  colorScheme={getColorScheme(nft.chainId)}
+                  opacity="0.8"
                 >
                   switch chain
                 </Button>
