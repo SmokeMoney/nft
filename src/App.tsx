@@ -790,12 +790,7 @@ function App() {
             p="3"
             style={{ justifyContent: "space-evenly" }}
           >
-            <img
-              src={nft.image}
-              alt={nft.name}
-              style={{ objectFit: "cover" }}
-              className="w-fit h-fit rounded-lg"
-            />
+            <img src={nft.image} alt={nft.name} />
             <Flex
               mt={3}
               alignItems="center"
