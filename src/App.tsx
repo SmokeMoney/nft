@@ -722,40 +722,58 @@ function App() {
             mint without gas or funds on any chain
           </Text>
         </Box>
-        <Flex flexDirection="row" justifyContent="center" alignItems="end">
-          <Flex
-            bg="black"
-            borderRadius="xl"
-            py="2"
-            px="3"
-            mr="3"
-            justifyContent="center"
-            alignItems="center"
-            color="white"
-            cursor="pointer"
-            onClick={onOpen}
-          >
-            <Text fontSize="md" fontWeight="600" textAlign="center" mr="2">
-              💳 {ethOrUSD ? "$" : ""}
-              {smokeBalance} {ethOrUSD ? "USD" : "ETH"}
-            </Text>
-            <svg
-              fill="none"
-              height="7"
-              width="14"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <title>Dropdown</title>
-              <path
-                d="M12.75 1.54001L8.51647 5.0038C7.77974 5.60658 6.72026 5.60658 5.98352 5.0038L1.75 1.54001"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2.5"
-                xmlns="http://www.w3.org/2000/svg"
-              ></path>
-            </svg>
-          </Flex>
+        <Flex flexDirection="row" justifyContent="center" alignItems="center">
+          {isConnected ? (
+            selectedNFT ? (
+              <Flex
+                bg="black"
+                borderRadius="xl"
+                py="2"
+                px="3"
+                mr="3"
+                justifyContent="center"
+                alignItems="center"
+                color="white"
+                cursor="pointer"
+                onClick={onOpen}
+              >
+                <Text fontSize="md" fontWeight="600" textAlign="center" mr="2">
+                  💳 {ethOrUSD ? "$" : ""}
+                  {smokeBalance} {ethOrUSD ? "USD" : "ETH"}
+                </Text>
+                <svg
+                  fill="none"
+                  height="7"
+                  width="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <title>Dropdown</title>
+                  <path
+                    d="M12.75 1.54001L8.51647 5.0038C7.77974 5.60658 6.72026 5.60658 5.98352 5.0038L1.75 1.54001"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    xmlns="http://www.w3.org/2000/svg"
+                  ></path>
+                </svg>
+              </Flex>
+            ) : (
+              <Text
+                fontSize="md"
+                fontWeight="600"
+                textAlign="center"
+                mr="5"
+                color="white"
+                as="a"
+                href="https://app.smoke.money"
+                target="_blank"
+                _hover={{ textDecoration: "underline" }}
+              >
+                💳 Get your card now
+              </Text>
+            )
+          ) : null}
           <ConnectButton accountStatus="avatar" chainStatus="icon" />
         </Flex>
       </Flex>
