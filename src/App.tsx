@@ -20,6 +20,8 @@ import {
   useAccount,
   usePublicClient,
   useSignTypedData,
+  useWriteContract,
+  useWaitForTransactionReceipt,
 } from "wagmi";
 import spendingRawAbi from "./abi/SmokeSpendingContract.abi.json";
 import parseDumbAbis from "@/abi/parsedSpendingAbi";
@@ -215,8 +217,52 @@ function App() {
 
   const [txHashes, setTxHashes] = useState<Record<string, string>>({});
 
+  const {
+    data: hash,
+    isPending,
+    error,
+    writeContractAsync,
+  } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
   const mintCost = "0.002";
   const spendingAbi = parseDumbAbis(spendingRawAbi);
+
+  useEffect(() => {
+    if (isPending) {
+      setMinting(true);
+    }
+    if (isConfirmed) {
+      setTxHashes({
+        ...txHashes,
+        [chainId]: hash,
+      });
+      setMinting(false);
+      setWalletActionNeeded(false);
+    }
+  }, [isPending, isConfirmed]);
+  useEffect(() => {
+    if (error) {
+      console.error("Mint error:", error.message);
+      let description;
+      if (error instanceof Error) {
+        description = error.message;
+      } else if (typeof error === "string") {
+        description = error;
+      } else {
+        description = "An unknown error occurred during the transaction";
+      }
+      toast({
+        title: "error",
+        description,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  }, [error]);
 
   useEffect(() => {
     const checkAddressType = async () => {
@@ -279,10 +325,6 @@ function App() {
       } else {
         console.log("Conditions not met for setting NFT");
       }
-      if (address) {
-        const freshBalance = await getBalance(config, { address: address });
-        setEthBalance(Number(formatEther(freshBalance.value)).toPrecision(4));
-      }
     };
     fetchNFTsAndBalance();
   }, [isConnected, address, selectedNFT, updateDataCounter]);
@@ -295,14 +337,25 @@ function App() {
       }
     };
     balanceUpdate();
-  }, [isConnected, address, chainId]);
+    console.log("Update eth balance",ethBalance);
+  }, [isConnected, address, chainId, updateDataCounter]);
 
   const handleMint = async (index: number) => {
     console.log("handling mint, index:", index);
     setWalletActionNeeded(index);
-    console.log("asdf");
 
-    if (addressType === "Smart Contract" && chainId == 84532) {
+    if (ethBalance > mintCost) {
+      console.log(ethBalance);
+      const txHash = await writeContractAsync({
+        address: nfts[index]["nftAddress"] as `0x${string}`,
+        abi,
+        functionName: "mint",
+        args: [],
+        value: parseEther("0.002"),
+      });
+      console.log(txHash);
+      setMinting(true);
+    } else if (addressType === "Smart Contract" && chainId == 84532) {
       console.log("inside ");
 
       if (!address || !selectedNFT) return;
@@ -541,6 +594,7 @@ function App() {
   };
 
   const switchToChain = async (newChainId: any) => {
+    setEthBalance("0");
     switchChain({ chainId: newChainId });
   };
 
@@ -684,11 +738,6 @@ function App() {
       ? calculations.availableToBorrowUsd
       : calculations.availableToBorrowEth
   );
-
-  console.log("usd avail", formatValue(calculations.availableToBorrowUsd));
-  console.log("eth avail", formatValue(calculations.availableToBorrowEth));
-
-  console.log("smokeBalance", smokeBalance);
 
   const getColorScheme = (chainId: any) => {
     if (chainId == 84532) return "blue";
